@@ -14,5 +14,5 @@ Query := π FieldList (Query)
 Query := ρ RenameList (Query)
 FieldList := Ident | Ident , FieldList
 RenameList := Ident ➡ Ident | Ident ➡ Ident , RenameList
-BinaryOp := * | - | ∪ | ∩ | ÷ | ⋈ | ⧑ | ⧒ | ⧓
+BinaryOp := * | - | ∪ | ∩ | ÷ | ⨝ | ⧑ | ⧒ | ⧓
 ```
