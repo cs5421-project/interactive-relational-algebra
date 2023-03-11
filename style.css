@@ -1,0 +1,23 @@
+textarea {
+    border: none;
+    background-color: transparent;
+    resize: none;
+    outline: none;
+}
+
+#editor {
+    counter-reset: line-number;
+}
+
+#editor:before {
+    content: counter(line-number);
+    display: block;
+    float: left;
+    margin-right: 0.5em;
+    text-align: right;
+    color: gray;
+}
+
+#editor > * {
+    counter-increment: line-number;
+}
