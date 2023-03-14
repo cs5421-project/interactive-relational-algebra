@@ -29,9 +29,9 @@ def main():
         print("FAILED")
 
     # Test 3
-    input = "RTable ⨝ STable"
+    input = "RTable ⋈ STable"
     tokens=lexer.tokenize(input)
-    expected = [Token("RTable", TokenType.IDENT), Token("⨝", TokenType.NATURAL_JOIN), Token("STable", TokenType.IDENT)]
+    expected = [Token("RTable", TokenType.IDENT), Token("⋈", TokenType.NATURAL_JOIN), Token("STable", TokenType.IDENT)]
     print("TEST 3: " + input + " ", end="")
     if (tokens == expected):
         print("SUCCESS")
