@@ -1,5 +1,8 @@
 class Query:
-    def __init__(self, value, databaseName):
+    def __init__(self, value):
         self.value = value
-        self.databaseName = databaseName
+        self.is_dql = self.is_dql()
 
+    def is_dql(self):
+        # TODO
+        return True
