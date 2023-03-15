@@ -46,3 +46,9 @@ To checkout the backend api:
 
 - Load it in your desktop postman app.
 
+
+## References
+Backend:
+
+Idea to use `pandas` package to use a csv file to populate the Postgres DB is from https://apoor.medium.com/quickly-load-csvs-into-postgresql-using-python-and-pandas-9101c274a92f
+
