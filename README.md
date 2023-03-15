@@ -19,11 +19,11 @@ Please make sure backend is already running before running the frontend.
 
 `cd backend` from root of the repo.
 
-**Setup DB:**
+**Setup DB:** (To be done only once)
 
   `sudo -i -u postgres psql`
 
-  `create database ira;` (To be done only once)
+  `create database ira;` 
 
   Quit from the `psql` prompt by  `\q`
 
