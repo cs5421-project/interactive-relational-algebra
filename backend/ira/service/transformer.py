@@ -9,7 +9,7 @@ def transform(binary_tree: List[str]):
         if index % 2 == 0:
             operator = binary_tree.pop()
             # TODO: Remove stub
-    return Query("select * from sample;")
+    return Query("select * from iris;")
 
 
 def map_ra_query_operator_to_sql_operator(operator: str):

@@ -13,11 +13,21 @@ TODO
 TODO: Fill in for frontend
 
 ## Commands to run app
-Make sure backend is running before running the frontend.
+Please make sure backend is already running before running the frontend.
 
 ### To run the backend
 
 `cd backend` from root of the repo.
+
+**Setup DB:**
+
+  `sudo -i -u postgres psql`
+
+  `create database ira;` (To be done only once)
+
+  Quit from the `psql` prompt by  `\q`
+
+**Run the server locally:**
 
 `python3 manage.py runserver`
 
