@@ -3,26 +3,6 @@ from typing import List, Union, Optional
 from Constants import *
 
 
-class TokenType(enum.Enum):
-    SELECT = 0
-    PROJECT = 1
-    UNION = 2
-    DIFFERENCE = 3
-    CARTESIAN = 4
-    RENAME = 5
-    NATURAL_JOIN = 6
-    ANTI_JOIN = 7
-    IDENT = 8
-    EQUALS = 9
-    AND = 10
-    OR = 11
-    NOT = 12
-    OPEN_PARENTHESIS = 13
-    CLOSED_PARENTHESIS = 14
-    DIGIT = 15
-    ARROW = 16
-
-
 class Token():
 
     def __init__(self, value, type):
@@ -43,7 +23,8 @@ class Lexer:
 
     def __init__(self):
         self.reserved_tokens = {
-            SELECT: TokenType.SELECT, PROJECT: TokenType.PROJECT, UNION: TokenType.UNION, NATURAL_JOIN: TokenType.NATURAL_JOIN, "=": TokenType.EQUALS, AND: TokenType.AND, OR: TokenType.OR, NOT: TokenType.NOT, ARROW: TokenType.ARROW
+            SELECT: TokenType.SELECT, PROJECT: TokenType.PROJECT, UNION: TokenType.UNION, NATURAL_JOIN: TokenType.NATURAL_JOIN, "=": TokenType.EQUALS,
+            AND: TokenType.AND, OR: TokenType.OR, NOT: TokenType.NOT, ARROW: TokenType.ARROW, PRODUCT: TokenType.PRODUCT, DIFFERENCE: TokenType.DIFFERENCE, DIVISION: TokenType.DIVISION
         }
 
         self.unary_tokens = {
@@ -53,43 +34,6 @@ class Lexer:
         self.brackets = {
             "(": TokenType.OPEN_PARENTHESIS, ")": TokenType.CLOSED_PARENTHESIS
         }
-
-    def convert_based_on_priority(self, tokens: List[Token]):
-        """
-        Modify the tokens generated after simple conversion of code to tokens to a
-        list of Union(Token, List[Token]) based on the operator precedences
-        """
-        items: List[Union[Token, List[Token]]] = []
-        while len(tokens) > 0:
-            if tokens[0].type == TokenType.OPEN_PARENTHESIS:  # Parenthesis state
-                end = self.find_matching_parenthesis(tokens)
-                if end is None:
-                    raise Exception('Missing matching \')\' in \'%s\'' %
-                                    display_tokens(tokens))
-                # Recursively convert parenthesis expressions
-                items.append(self.convert_based_on_priority(tokens[1:end]))
-                # Removes the entire parentesis and content from the tokens
-                tokens = tokens[end + 1:]
-
-            elif tokens[0].type in self.unary_tokens:  # Unary operators
-                items.append(tokens[0])
-                tokens = tokens[1:]  # Remove operator from the tokens
-
-                if tokens[0].type == TokenType.OPEN_PARENTHESIS:
-                    par = self.find_token(tokens,
-                                          '(', self.find_matching_parenthesis(tokens))
-                else:
-                    par = self.find_token(tokens, '(')
-
-                if par == -1:
-                    raise Exception(
-                        '( could not be found in a unary operantion')
-                items.append(tokens[:par])
-                tokens = tokens[par:]  # Removing parameter from the tokens
-            else:  # Identifier or binary op
-                items.append(tokens[0])
-                tokens = tokens[1:]
-        return items
 
     def tokenize(self, input: str):
         """
@@ -127,7 +71,46 @@ class Lexer:
                     cur_ident = ""
         if len(cur_ident) > 0:
             tokens.append(self.get_literal_token(cur_ident))
+        tokens = self.combine_py_expressions(tokens)
         return tokens
+
+    def combine_py_expressions(self, tokens: List[Token]):
+        new_tokens = []
+        while len(tokens) > 0:
+            if tokens[0].type in self.unary_tokens:  # Unary operators
+                op = tokens[0]
+                tokens = tokens[1:]  # Remove operator from the tokens
+
+                if tokens[0].type == TokenType.OPEN_PARENTHESIS:
+                    parenthesis_end = self.find_parenthesis_position(tokens,
+                                                         '(', self.find_matching_parenthesis(tokens))
+                else:
+                    parenthesis_end = self.find_parenthesis_position(tokens, '(')
+
+                if parenthesis_end == -1:
+                    raise Exception(
+                        '( could not be found in a unary operation')
+                expression = self.convert_to_py_expression(tokens[:parenthesis_end])
+                new_tokens.append(Token(op.value + expression, op.type))
+                tokens = tokens[parenthesis_end:]  # Removing parameter from the tokens
+            else:
+                new_tokens.append(tokens[0])
+                tokens = tokens[1:]
+        return new_tokens
+
+    def convert_to_py_expression(self, tokens: List[Token]) -> str:
+        """
+        Convert the tokens to a string of expressions
+        """
+        res = "["
+        for token in tokens:
+            if token.value in logical_operators:
+                res += " "
+            res += token.value
+            if token.value in logical_operators:
+                res += " "
+        res += "]"
+        return res
 
     def is_end_of_ident(self, ch):
         return ch in self.reserved_tokens or ch == " "
@@ -145,24 +128,27 @@ class Lexer:
         return True
 
     def find_matching_parenthesis(self, tokens: List[Token], start=0) -> Optional[int]:
-        '''Finds the '''
-        par_count = 0  # Count of parenthesis
+        '''Finds the ending bracket which matches the opening bracket'''
+        # Count of open brackets
+        count = 0
         for i in range(start, len(tokens)):
             if tokens[i].type == TokenType.OPEN_PARENTHESIS:
-                par_count += 1
+                count += 1
             elif tokens[i].type == TokenType.CLOSED_PARENTHESIS:
-                par_count -= 1
-                if par_count == 0:
-                    return i  # Closing parenthesis of the parameter
+                count -= 1
+
+            if count < 0:
+                raise Exception("Too many ) in the expression")
+            if count == 0:
+                return i  # position of the correct closing parenthesis
         return None
 
-    def find_token(self, tokens: List[Token], token_value: str, start: int = 0) -> int:
+    def find_parenthesis_position(self, tokens: List[Token], token_value: str, start: int = 0) -> int:
         '''
         Find at which position the token_value exists
         '''
         r = -1
         for i in range(start, len(tokens)):
-
             if tokens[i:][0].value == (token_value):
                 return i
         return r
