@@ -43,10 +43,7 @@ class Parser:
         while operator_stack:
             output_queue.append(operator_stack.pop())
 
-        res = ""
-        for token in output_queue:
-            res += token.value + " "
-        return res.strip()
+        return " ".join([token.value for token in output_queue])
 
     def is_binary_op(self, token: Token):
         return self.precedence[token.type] == 2
