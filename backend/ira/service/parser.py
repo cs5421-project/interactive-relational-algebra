@@ -1,18 +1,17 @@
 from .lexer import Token
 from typing import List
-from .constants import *
+from ira.constants import *
 
 binary_operators = {NATURAL_JOIN: TokenType.NATURAL_JOIN, JOIN_LEFT: TokenType.JOIN_LEFT,
                     JOIN_RIGHT: TokenType.JOIN_RIGHT,
                     DIFFERENCE: TokenType.DIFFERENCE, PRODUCT: TokenType.PRODUCT,
                     INTERSECTION: TokenType.INTERSECTION, UNION: TokenType.UNION,
                     DIVISION: TokenType.DIVISION}
-unary_operators = {SELECT: TokenType.SELECT, PROJECT: TokenType.PROJECT, RENAME: TokenType.RENAME}
+unary_operators = {SELECT: TokenType.SELECT, PROJECTION: TokenType.PROJECTION, RENAME: TokenType.RENAME}
 
 
 class Parser:
     def __init__(self):
-        self.name = "Parser"
         self.precedence = {}
         for op in unary_operators:
             self.precedence[unary_operators[op]] = 2
@@ -43,7 +42,7 @@ class Parser:
         while operator_stack:
             output_queue.append(operator_stack.pop())
 
-        return " ".join([token.value for token in output_queue])
+        return output_queue
 
     def is_binary_op(self, token: Token):
         return self.precedence[token.type] == 2

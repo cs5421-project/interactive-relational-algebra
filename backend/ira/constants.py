@@ -9,11 +9,10 @@ NATURAL_JOIN = '⋈'
 JOIN_LEFT = '⧑'
 JOIN_RIGHT = '⧒'
 JOIN_FULL = '⧓'
-PROJECT = 'π'
+PROJECTION = 'π'
 SELECT = 'σ'
 RENAME = 'ρ'
 ARROW = '➡'
-
 
 AND = "and"
 OR = "or"
@@ -21,9 +20,10 @@ NOT = "not"
 
 logical_operators = [AND, OR, NOT]
 
+
 class TokenType(enum.Enum):
     SELECT = 0
-    PROJECT = 1
+    PROJECTION = 1
     UNION = 2
     DIFFERENCE = 3
     CARTESIAN = 4

@@ -1,19 +1,21 @@
 from typing import List, Optional
 
-from .constants import *
+from ira.constants import *
 
 
-class Token():
+class Token:
 
-    def __init__(self, value, type):
+    def __init__(self, value, type, attribute=None):
         self.value = value
         self.type = type
+        self.attribute = attribute
 
     def __eq__(self, __o: object) -> bool:
-        return self.type == __o.type and self.value == __o.value
+        return isinstance(__o, Token) and \
+            self.type == __o.type and self.value == __o.value and self.attribute == __o.attribute
 
     def __str__(self):
-        return f'Token is {self.value} of type {self.type}'
+        return f'Token is {self.value} of type {self.type} with attribute {self.attribute}'
 
 
 class Lexer:
@@ -23,12 +25,14 @@ class Lexer:
 
     def __init__(self):
         self.reserved_tokens = {
-            SELECT: TokenType.SELECT, PROJECT: TokenType.PROJECT, UNION: TokenType.UNION, NATURAL_JOIN: TokenType.NATURAL_JOIN, "=": TokenType.EQUALS,
-            AND: TokenType.AND, OR: TokenType.OR, NOT: TokenType.NOT, ARROW: TokenType.ARROW, PRODUCT: TokenType.PRODUCT, DIFFERENCE: TokenType.DIFFERENCE, DIVISION: TokenType.DIVISION
+            SELECT: TokenType.SELECT, PROJECTION: TokenType.PROJECTION, UNION: TokenType.UNION,
+            NATURAL_JOIN: TokenType.NATURAL_JOIN, "=": TokenType.EQUALS,
+            AND: TokenType.AND, OR: TokenType.OR, NOT: TokenType.NOT, ARROW: TokenType.ARROW,
+            PRODUCT: TokenType.PRODUCT, DIFFERENCE: TokenType.DIFFERENCE, DIVISION: TokenType.DIVISION
         }
 
         self.unary_tokens = {
-            TokenType.SELECT, TokenType.PROJECT, TokenType.RENAME
+            TokenType.SELECT, TokenType.PROJECTION, TokenType.RENAME
         }
 
         self.brackets = {
@@ -83,22 +87,22 @@ class Lexer:
 
                 if tokens[0].type == TokenType.OPEN_PARENTHESIS:
                     parenthesis_end = self.find_parenthesis_position(tokens,
-                                                         '(', self.find_matching_parenthesis(tokens))
+                                                                     '(', self.find_matching_parenthesis(tokens))
                 else:
                     parenthesis_end = self.find_parenthesis_position(tokens, '(')
 
                 if parenthesis_end == -1:
                     raise Exception(
                         '( could not be found in a unary operation')
-                expression = self.convert_to_py_expression(tokens[:parenthesis_end])
-                new_tokens.append(Token(op.value + expression, op.type))
+                attributes = tokens[:parenthesis_end]
+                new_tokens.append(Token(op.value, op.type, attributes))
                 tokens = tokens[parenthesis_end:]  # Removing parameter from the tokens
             else:
                 new_tokens.append(tokens[0])
                 tokens = tokens[1:]
         return new_tokens
 
-    def convert_to_py_expression(self, tokens: List[Token]) -> str:
+    def convert_to_py_expression_string(self, tokens: List[Token]) -> str:
         """
         Convert the tokens to a string of expressions
         """

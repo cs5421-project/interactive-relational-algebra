@@ -23,8 +23,8 @@ class ExecuteRaQueryView(View):
             request_body = json.loads(request.body)
             if self.is_request_valid(request_body):
                 tokens = self.lexer.tokenize(request_body["raQuery"])
-                parsed_postfix_form = self.parser.parse(tokens)
-                sql_query = transform(parsed_postfix_form)
+                parsed_postfix_tokens = self.parser.parse(tokens)
+                sql_query = transform(parsed_postfix_tokens)
                 output = execute_sql_query(sql_query)
                 return JsonResponse(output.value, status=output.status_code)
         return JsonResponse({"message": "Request not valid; Please ensure that only one attribute 'raQuery' is "
