@@ -18,7 +18,13 @@ AND = "and"
 OR = "or"
 NOT = "not"
 
-logical_operators = [AND, OR, NOT]
+GREATER_THAN = ">"
+LESSER_THAN = "<"
+GREATER_OR_EQUAL_TO = ">="
+LESSER_OR_EQUAL_TO = "<="
+
+LOGICAL_OPERATORS = [AND, OR, NOT]
+COMPARATIVE_OPERATORS = [GREATER_THAN, GREATER_OR_EQUAL_TO, LESSER_THAN, LESSER_OR_EQUAL_TO]
 
 
 class TokenType(enum.Enum):
