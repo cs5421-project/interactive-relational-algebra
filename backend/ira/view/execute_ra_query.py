@@ -7,20 +7,25 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 from ira.service.db_executor import execute_sql_query
+from ira.service.lexer import Lexer
+from ira.service.parser import Parser
 from ira.service.transformer import transform
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ExecuteRaQueryView(View):
 
+    lexer = Lexer()
+    parser = Parser()
+
     def post(self, request: HttpRequest):
         if request.body:
             request_body = json.loads(request.body)
             if self.is_request_valid(request_body):
-                # TODO: Call core logic
-                # TODO: Remove stub argument
-                query = transform(["sample"])
-                output = execute_sql_query(query)
+                tokens = self.lexer.tokenize(request_body["raQuery"])
+                parsed_postfix_form = self.parser.parse(tokens)
+                sql_query = transform(parsed_postfix_form)
+                output = execute_sql_query(sql_query)
                 return JsonResponse(output.value, status=output.status_code)
         return JsonResponse({"message": "Request not valid; Please ensure that only one attribute 'raQuery' is "
                                         "utilised."},

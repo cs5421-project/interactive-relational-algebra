@@ -16,8 +16,8 @@ def execute_sql_query(query: Query) -> Output:
                               result=fetch_all(cursor))
             return Output(HTTPStatus.OK,
                           query,
-                          message="Query {query} has updated {row_number} row(s)."
-                                  .format(query=query.value, row_number=cursor.rowcount))
+                          message="Query {query} has affected {number_of_rows} row(s)."
+                                  .format(query=query.value, number_of_rows=cursor.rowcount))
         except Exception as exception:
             return Output(HTTPStatus.BAD_REQUEST,
                           query,
