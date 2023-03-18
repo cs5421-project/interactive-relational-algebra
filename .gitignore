@@ -1,0 +1,6 @@
+
+*.pyc
+
+backend/.idea/
+
+ra_parser/.idea/
