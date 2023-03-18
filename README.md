@@ -19,7 +19,7 @@ Please make sure backend is already running before running the frontend.
 
 `cd backend` from root of the repo.
 
-**Setup DB:** (To be done only once)
+**Setup DB:** (DB to be created only once)
 
   `sudo -i -u postgres psql`
 
@@ -52,3 +52,12 @@ Backend:
 
 Idea to use `pandas` package to use a csv file to populate the Postgres DB is from https://apoor.medium.com/quickly-load-csvs-into-postgresql-using-python-and-pandas-9101c274a92f
 
+
+Datasets:
+
+iris csv: 
+https://gist.github.com/netj/8836201
+
+products and  sales csv:
+https://www.sqlservercentral.com/articles/join-two-csv-files-with-a-common-column
+Note: Original dataset was delimited by semicolons, and this had been changed to commas.
