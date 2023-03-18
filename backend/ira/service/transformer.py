@@ -1,15 +1,15 @@
 from typing import List
 
-from ira.constants import TokenType, LOGICAL_OPERATORS, COMPARATIVE_OPERATORS
+from ira.constants import TokenType
 from ira.model.attributes import Attributes
 from ira.model.query import Query
 from ira.model.token import Token
-from ira.service.util import split_string, is_binary_operator
 
 QUERY_MAPPER = {TokenType.SELECT: "select * from {{}} where {conditions};",
                 TokenType.PROJECTION: "select {column_names} from {{}};",
                 TokenType.NATURAL_JOIN: "select * from {} natural join {};",
-                TokenType.IDENT: "select * from {table_name};"}
+                TokenType.IDENT: "select * from {table_name};",
+                TokenType.CARTESIAN: "select * from {} cross join {};"}
 
 
 def transform(parsed_postfix_tokens: List[Token]) -> Query:
@@ -40,7 +40,7 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
             query = QUERY_MAPPER[current_token.type].format(column_names=column_names)
             query_stack.append((query, current_token))
 
-        elif current_token.type == TokenType.NATURAL_JOIN:
+        elif current_token.type in [TokenType.NATURAL_JOIN, TokenType.CARTESIAN]:
             # TODO accept conditional attribute once tokenizer and parser allows it
             query = QUERY_MAPPER[current_token.type]
             query_stack.append((query, current_token))
@@ -65,7 +65,7 @@ def generate_query(query_stack, token):
                         # Mandatory so that postgres is able to find the column name associated with a subquery;
                         alias_prefixed_column_name = 'q{number_of_subquery}."{column_name}"' \
                             .format(number_of_subquery=number_of_subquery,
-                                    column_name=column_name.capitalize())
+                                    column_name=column_name)
                         stored_query = stored_query.replace('"{}"'.format(column_name), alias_prefixed_column_name)
                 query = "{}".format(stored_query.format(query))
         return Query(query)
@@ -80,12 +80,17 @@ def process_query_stack(query_stack, token, level, current_query):
         # stored_query is None for an identifier token dealing with binary op.
         parent_query, _ = query_stack.pop()
         # Do not need an alias if it is a top level query
-        level = None if len(query_stack) == 0 else level
+        level = get_level(query_stack, level)
         query = get_query_with_alias(parent_query.format(current_query, stored_token.value), level)
     else:
         # Unary operation
+        level = get_level(query_stack, level)
         query = get_query_with_alias(stored_query.format(current_query), level)
     return query, stored_query
+
+
+def get_level(query_stack, level):
+    return None if len(query_stack) == 0 else level
 
 
 def get_query_with_alias(query, level):

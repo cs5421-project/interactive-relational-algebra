@@ -40,6 +40,7 @@ PROJECTION = 'π'
 SELECT = 'σ'
 RENAME = 'ρ'
 ARROW = '➡'
+CARTESIAN = '⨯'
 
 AND = "and"
 OR = "or"
@@ -57,7 +58,7 @@ BINARY_OPERATORS = {NATURAL_JOIN: TokenType.NATURAL_JOIN, JOIN_LEFT: TokenType.J
                     JOIN_RIGHT: TokenType.JOIN_RIGHT,
                     DIFFERENCE: TokenType.DIFFERENCE, PRODUCT: TokenType.PRODUCT,
                     INTERSECTION: TokenType.INTERSECTION, UNION: TokenType.UNION,
-                    DIVISION: TokenType.DIVISION}
+                    DIVISION: TokenType.DIVISION, CARTESIAN: TokenType.CARTESIAN}
 UNARY_OPERATORS = {SELECT: TokenType.SELECT, PROJECTION: TokenType.PROJECTION, RENAME: TokenType.RENAME}
 
 BINARY_OPERATOR_MAP = {value: key for key, value in BINARY_OPERATORS.items()}

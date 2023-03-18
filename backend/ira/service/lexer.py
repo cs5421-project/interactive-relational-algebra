@@ -14,7 +14,7 @@ class Lexer:
             SELECT: TokenType.SELECT, PROJECTION: TokenType.PROJECTION, UNION: TokenType.UNION,
             NATURAL_JOIN: TokenType.NATURAL_JOIN, "=": TokenType.EQUALS,
             AND: TokenType.AND, OR: TokenType.OR, NOT: TokenType.NOT, ARROW: TokenType.ARROW,
-            PRODUCT: TokenType.PRODUCT, DIFFERENCE: TokenType.DIFFERENCE, DIVISION: TokenType.DIVISION
+            PRODUCT: TokenType.PRODUCT, DIFFERENCE: TokenType.DIFFERENCE, DIVISION: TokenType.DIVISION, CARTESIAN:TokenType.CARTESIAN
         }
 
         self.unary_tokens = {
