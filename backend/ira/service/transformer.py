@@ -2,7 +2,7 @@ from typing import List
 
 from ira.constants import TokenType, LOGICAL_OPERATORS, COMPARATIVE_OPERATORS
 from ira.model.query import Query
-from ira.service.lexer import Token
+from ira.model.token import Token
 from ira.service.util import split_string
 
 QUERY_MAPPER = {TokenType.SELECT: "select * from {{}} where {conditions};",
@@ -88,6 +88,7 @@ def sanitise(query_segment: str, token_type: TokenType):
     """
     Surrounding column name with " just in case if column name contain characters like "." etc
     """
+    # TODO: Deprecated this
     if token_type == TokenType.PROJECTION:
         return ",".join('"{column_name}"'.format(column_name=column_name)
                         for column_name in str(query_segment).split(','))

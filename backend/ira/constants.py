@@ -1,5 +1,32 @@
 import enum
 
+
+class TokenType(enum.Enum):
+    SELECT = 0
+    PROJECTION = 1
+    UNION = 2
+    DIFFERENCE = 3
+    CARTESIAN = 4
+    RENAME = 5
+    NATURAL_JOIN = 6
+    ANTI_JOIN = 7
+    IDENT = 8
+    EQUALS = 9
+    AND = 10
+    OR = 11
+    NOT = 12
+    OPEN_PARENTHESIS = 13
+    CLOSED_PARENTHESIS = 14
+    DIGIT = 15
+    ARROW = 16
+    INTERSECTION = 17
+    JOIN_LEFT = 18
+    JOIN_RIGHT = 19
+    PRODUCT = 20
+    DIVISION = 21
+    EXPRESSION = 22
+
+
 PRODUCT = '*'
 DIFFERENCE = '-'
 UNION = '∪'
@@ -26,28 +53,13 @@ LESSER_OR_EQUAL_TO = "<="
 LOGICAL_OPERATORS = [AND, OR, NOT]
 COMPARATIVE_OPERATORS = [GREATER_THAN, GREATER_OR_EQUAL_TO, LESSER_THAN, LESSER_OR_EQUAL_TO]
 
+BINARY_OPERATORS = {NATURAL_JOIN: TokenType.NATURAL_JOIN, JOIN_LEFT: TokenType.JOIN_LEFT,
+                    JOIN_RIGHT: TokenType.JOIN_RIGHT,
+                    DIFFERENCE: TokenType.DIFFERENCE, PRODUCT: TokenType.PRODUCT,
+                    INTERSECTION: TokenType.INTERSECTION, UNION: TokenType.UNION,
+                    DIVISION: TokenType.DIVISION}
+UNARY_OPERATORS = {SELECT: TokenType.SELECT, PROJECTION: TokenType.PROJECTION, RENAME: TokenType.RENAME}
 
-class TokenType(enum.Enum):
-    SELECT = 0
-    PROJECTION = 1
-    UNION = 2
-    DIFFERENCE = 3
-    CARTESIAN = 4
-    RENAME = 5
-    NATURAL_JOIN = 6
-    ANTI_JOIN = 7
-    IDENT = 8
-    EQUALS = 9
-    AND = 10
-    OR = 11
-    NOT = 12
-    OPEN_PARENTHESIS = 13
-    CLOSED_PARENTHESIS = 14
-    DIGIT = 15
-    ARROW = 16
-    INTERSECTION = 17
-    JOIN_LEFT = 18
-    JOIN_RIGHT = 19
-    PRODUCT = 20
-    DIVISION = 21
-    EXPRESSION = 22
+BINARY_OPERATOR_MAP = {value: key for key, value in BINARY_OPERATORS.items()}
+UNARY_OPERATOR_MAP = {value: key for key, value in UNARY_OPERATORS.items()}
+OPERATOR_MAP = {**BINARY_OPERATOR_MAP, **UNARY_OPERATOR_MAP}

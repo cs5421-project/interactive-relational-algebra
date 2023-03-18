@@ -1,39 +1,7 @@
 from typing import List, Optional
 
+from ira.model.token import Token
 from ira.constants import *
-
-
-class Token:
-
-    def __init__(self, value, type, attributes=None):
-        self.value = value
-        self.type = type
-        self.attributes = Attribute(self, attributes) if attributes is not None else None
-
-    def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, Token) and \
-            self.type == __o.type and self.value == __o.value and self.attributes == __o.attributes
-
-    def __str__(self):
-        return f'Token is {self.value} of type {self.type} with attribute {self.attributes}'
-
-
-class Attribute:
-    def __init__(self, parent_token, value):
-        self.parent_token = parent_token
-        self.value = value
-
-    def __str__(self):
-        result = ""
-        for token in self.value:
-            if token.value in LOGICAL_OPERATORS:
-                result += " "
-            result += token.value
-            if token.value in LOGICAL_OPERATORS:
-                result += " "
-        if result.startswith('(') and result.endswith(')'):
-            result = result[1:-1]
-        return result.strip()
 
 
 class Lexer:

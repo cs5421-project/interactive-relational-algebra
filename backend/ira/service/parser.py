@@ -1,22 +1,15 @@
-from .lexer import Token
+from ira.model.token import Token
 from typing import List
 from ira.constants import *
-
-binary_operators = {NATURAL_JOIN: TokenType.NATURAL_JOIN, JOIN_LEFT: TokenType.JOIN_LEFT,
-                    JOIN_RIGHT: TokenType.JOIN_RIGHT,
-                    DIFFERENCE: TokenType.DIFFERENCE, PRODUCT: TokenType.PRODUCT,
-                    INTERSECTION: TokenType.INTERSECTION, UNION: TokenType.UNION,
-                    DIVISION: TokenType.DIVISION}
-unary_operators = {SELECT: TokenType.SELECT, PROJECTION: TokenType.PROJECTION, RENAME: TokenType.RENAME}
 
 
 class Parser:
     def __init__(self):
         self.precedence = {}
-        for op in unary_operators:
-            self.precedence[unary_operators[op]] = 2
-        for op in binary_operators:
-            self.precedence[binary_operators[op]] = 1
+        for op in UNARY_OPERATORS:
+            self.precedence[UNARY_OPERATORS[op]] = 2
+        for op in BINARY_OPERATORS:
+            self.precedence[BINARY_OPERATORS[op]] = 1
 
     def parse(self, tokens: List[Token]):
 

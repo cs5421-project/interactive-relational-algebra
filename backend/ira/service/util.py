@@ -1,12 +1,7 @@
 from typing import List
 
 from ira.constants import *
-from ira.service.parser import binary_operators, unary_operators
-
-BINARY_OPERATOR_MAP = {value: key for key, value in binary_operators.items()}
-UNARY_OPERATOR_MAP = {value: key for key, value in unary_operators.items()}
-
-OPERATOR_MAP = {**BINARY_OPERATOR_MAP, **UNARY_OPERATOR_MAP}
+from ira.constants import BINARY_OPERATOR_MAP, UNARY_OPERATOR_MAP
 
 
 def is_binary_operator(token_type: TokenType):
