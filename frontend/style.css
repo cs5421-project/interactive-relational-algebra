@@ -1,0 +1,55 @@
+::-webkit-scrollbar {
+    display: none;
+}
+
+textarea {
+    border: none;
+    background-color: transparent;
+    resize: none;
+    outline: none;
+}
+
+#result-container {
+    background-color: lightcyan;
+    border: 2px solid;
+    height: 100%;
+}
+
+#result-container h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+#result-table {
+    width: 100%;
+}
+
+#result-table th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: center;
+    background-color: #04AA6D;
+    color: white;
+}
+
+
+#result-table table,
+th,
+td {
+    border: 1px solid;
+    text-align: center;
+}
+
+
+#result-table tr:nth-child(even) {
+    background-color: lightgray;
+}
+
+#sql-query {
+    background-color: lightgray;
+    border-radius: 10px;
+    width: 100%;
+    font-weight: bold;
+    margin: 10px 0;
+}

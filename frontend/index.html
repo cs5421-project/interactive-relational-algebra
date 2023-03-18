@@ -11,7 +11,7 @@
 </head>
 
 <body>
-    <form>
+    <form id="query-form">
         <div class="w-full mb-4 border border-gray-200 bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
 
             <div class="flex items-center justify-between px-3 py-2 border-b dark:border-gray-600">
@@ -27,7 +27,7 @@
                             class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
                             σ
                         </button>
-                    
+
 
                         <button type="button" onClick="insertSymbol(event)"
                             class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
@@ -155,6 +155,12 @@
 
     </form>
 
+    <div id="result-container">
+        <h3 id="result-header">Query Result</h3>
+        <div id="sql-query"></div>
+        <h4 id="info-tag"> no table to display</h4>
+        <table id="result-table"></table>
+    </div>
 </body>
 
 <script src="./script.js"> </script>
