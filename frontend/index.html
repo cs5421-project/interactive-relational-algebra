@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./style.css">
+    <title>Document</title>
+</head>
+
+<body>
+    <form id="query-form">
+        <div class="w-full mb-4 border border-gray-200 bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+
+            <div class="flex items-center justify-between px-3 py-2 border-b dark:border-gray-600">
+                <div class="flex flex-wrap items-center divide-gray-200 sm:divide-x dark:divide-gray-600">
+                    <!--tool box buttonss-->
+                    <div class="flex items-center space-x-1 sm:pr-4">
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            π
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            σ
+                        </button>
+
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ρ
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ←
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            →
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            τ
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            γ
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ∧
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ∨
+                        </button>
+
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ¬
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            =
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ≠
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ≥
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ≤
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ∩
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ∪
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ÷
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            -
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ⨯
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ⨝
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ⟕
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ⟖
+                        </button>
+
+                        <button type="button" onClick="insertSymbol(event)"
+                            class="p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-600">
+                            ⟗
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="px-4 py-2 bg-white rounded-b-lg dark:bg-gray-800">
+                <textarea id="editor" rows="25"
+                    class="block w-full px-0 text-sm text-gray-800 bg-white border-0 dark:bg-gray-800  dark:text-white dark:placeholder-gray-400"
+                    placeholder="Enter a relational algebra..." required></textarea>
+            </div>
+
+            <!--submit query button-->
+            <div class="flex justify-center">
+                <button class="m bg-gray-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
+                    Submit Query
+                </button>
+            </div>
+
+    </form>
+
+    <div id="result-container">
+        <h3 id="result-header">Query Result</h3>
+        <div id="sql-query"></div>
+        <h4 id="info-tag"> no table to display</h4>
+        <table id="result-table"></table>
+    </div>
+</body>
+
+<script src="./script.js"> </script>
+
+</html>
