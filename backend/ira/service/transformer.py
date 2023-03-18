@@ -1,9 +1,10 @@
 from typing import List
 
 from ira.constants import TokenType, LOGICAL_OPERATORS, COMPARATIVE_OPERATORS
+from ira.model.attributes import Attributes
 from ira.model.query import Query
 from ira.model.token import Token
-from ira.service.util import split_string
+from ira.service.util import split_string, is_binary_operator
 
 QUERY_MAPPER = {TokenType.SELECT: "select * from {{}} where {conditions};",
                 TokenType.PROJECTION: "select {column_names} from {{}};",
@@ -21,6 +22,8 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
             return generate_query(query_stack, current_token)
         elif current_token.type == TokenType.IDENT and query_stack:
             parent_token = query_stack[-1][-1]
+            # Logically this token is involved in a binary op, since if there are more than one table identifier,
+            # it implies that there is a binary operation between them either directly or indirectly.
             if parent_token:
                 query_stack.append((None, current_token))
             else:
@@ -28,14 +31,14 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
                                 "getting 2 operands.".format(parent_token=parent_token))
 
         elif current_token.type == TokenType.SELECT:
-            conditions = sanitise(str(current_token.attributes), current_token.type)
+            conditions = sanitise(current_token.attributes, current_token.type)
             query = QUERY_MAPPER[current_token.type].format(conditions=conditions)
-            query_stack.append((query, None))
+            query_stack.append((query, current_token))
 
         elif current_token.type == TokenType.PROJECTION:
-            column_names = sanitise(str(current_token.attributes), current_token.type)
+            column_names = sanitise(current_token.attributes, current_token.type)
             query = QUERY_MAPPER[current_token.type].format(column_names=column_names)
-            query_stack.append((query, None))
+            query_stack.append((query, current_token))
 
         elif current_token.type == TokenType.NATURAL_JOIN:
             # TODO accept conditional attribute once tokenizer and parser allows it
@@ -44,33 +47,44 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
 
 
 def generate_query(query_stack, token):
+    number_of_subquery = 0
     if query_stack:
-        original_length_of_query_stack = len(query_stack)
-        query, stored_query = process_query_stack(query_stack, token, 0, original_length_of_query_stack)
+        query, stored_query = process_query_stack(query_stack, token, number_of_subquery,
+                                                  None)
         while query_stack:
             is_top_level_query = len(query_stack) == 1
             if not is_top_level_query:
-                query, stored_query = process_query_stack(query_stack, token, len(query_stack),
-                                                          original_length_of_query_stack)
+                number_of_subquery += 1
+                query, stored_query = process_query_stack(query_stack, token,
+                                                          number_of_subquery,
+                                                          query)
             else:
-                stored_query, _ = query_stack.pop()
+                stored_query, stored_token = query_stack.pop()
+                if stored_token.type == TokenType.SELECT:
+                    for column_name in stored_token.attributes.column_names:
+                        # Mandatory so that postgres is able to find the column name associated with a subquery;
+                        alias_prefixed_column_name = 'q{number_of_subquery}."{column_name}"' \
+                            .format(number_of_subquery=number_of_subquery,
+                                    column_name=column_name.capitalize())
+                        stored_query = stored_query.replace('"{}"'.format(column_name), alias_prefixed_column_name)
                 query = "{}".format(stored_query.format(query))
         return Query(query)
     else:
         return Query(QUERY_MAPPER[TokenType.IDENT].format(table_name=token.value))
 
 
-def process_query_stack(query_stack, token, level, original_length_of_query_stack):
-    stored_query, sibling_token = query_stack.pop()
-    if sibling_token:
-        # If sibling token exists, then we are dealing with a binary operation here
+def process_query_stack(query_stack, token, level, current_query):
+    stored_query, stored_token = query_stack.pop()
+    current_query = token.value if current_query is None else current_query
+    if stored_query is None:
+        # stored_query is None for an identifier token dealing with binary op.
         parent_query, _ = query_stack.pop()
         # Do not need an alias if it is a top level query
-        level = None if original_length_of_query_stack == 2 else 0
-        query = get_query_with_alias(parent_query.format(token.value, sibling_token.value), level)
+        level = None if len(query_stack) == 0 else level
+        query = get_query_with_alias(parent_query.format(current_query, stored_token.value), level)
     else:
         # Unary operation
-        query = get_query_with_alias(stored_query.format(token.value), level)
+        query = get_query_with_alias(stored_query.format(current_query), level)
     return query, stored_query
 
 
@@ -84,19 +98,17 @@ def get_query_with_alias(query, level):
         return query
 
 
-def sanitise(query_segment: str, token_type: TokenType):
+def sanitise(attributes: Attributes, token_type: TokenType):
     """
+    Using quoted identifiers to avoid ambiguity.
     Surrounding column name with " just in case if column name contain characters like "." etc
     """
-    # TODO: Deprecated this
     if token_type == TokenType.PROJECTION:
         return ",".join('"{column_name}"'.format(column_name=column_name)
-                        for column_name in str(query_segment).split(','))
+                        for column_name in attributes.get_column_names())
     elif token_type == TokenType.SELECT:
-        conditions = split_string(query_segment, LOGICAL_OPERATORS)
-        for condition in conditions:
-            condition_segments = split_string(condition, COMPARATIVE_OPERATORS)
-            column_name = condition_segments[0]
+        query_segment = str(attributes)
+        for column_name in attributes.get_column_names():
             query_segment = query_segment.replace(column_name, '"{column_name}"'
                                                   .format(column_name=column_name))
         return query_segment

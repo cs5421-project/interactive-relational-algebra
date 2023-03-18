@@ -22,10 +22,10 @@ class Attributes:
 
     def get_column_names(self):
         if self.parent_token.type == TokenType.PROJECTION:
-            return str(self.value).split(',')
+            return str(self).split(',')
         elif self.parent_token.type == TokenType.SELECT:
             # Selection
-            conditions = split_string(str(self.value), LOGICAL_OPERATORS)
+            conditions = split_string(str(self), LOGICAL_OPERATORS)
             column_names = []
             for condition in conditions:
                 condition_segments = split_string(condition, COMPARATIVE_OPERATORS)
