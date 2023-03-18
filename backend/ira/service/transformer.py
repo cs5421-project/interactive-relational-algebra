@@ -3,35 +3,39 @@ from typing import List
 from ira.constants import TokenType, LOGICAL_OPERATORS, COMPARATIVE_OPERATORS
 from ira.model.query import Query
 from ira.service.lexer import Token
-from ira.service.util import is_unary_operator, split_string
+from ira.service.util import is_unary_operator, split_string, OPERATOR_MAP
 
-QUERY_MAPPER = {TokenType.SELECT: "select * from {table_name} where {conditions};",
-                TokenType.PROJECTION: "select {column_names} from {table_name};"}
+QUERY_MAPPER = {TokenType.SELECT: "select * from {{}} where {conditions};",
+                TokenType.PROJECTION: "select {column_names} from {{}};"}
 
 
 def transform(parsed_postfix_tokens: List[Token]) -> Query:
     # TODO: Add support for other operators and other complex scenario etc
     # TODO: Do validation and further sanitation while parsing and not here
-    stack = []
-    while parsed_postfix_tokens:
+    query_stack = []
+    while parsed_postfix_tokens or query_stack:
         token = parsed_postfix_tokens.pop()
 
-        operands = []
-        number_of_operands = 1 if is_unary_operator(token.type) else 2
-        for _ in range(number_of_operands):
-            operands.append(parsed_postfix_tokens.pop())
+        if token.type == TokenType.IDENT and query_stack:
+            # Adding alias as postgres must need alias for sub-queries
+            query = "({}) as q0".format(query_stack.pop().format(token.value).rstrip(';'))
+            while query_stack:
+                is_top_level_query = len(query_stack) == 1
+                if not is_top_level_query:
+                    query = "({}) as q{level}".format(query_stack.pop().format(query).rstrip(';'),level=len(query_stack))
+                else:
+                    query = "{}".format(query_stack.pop().format(query))
+            return Query(query)
+        elif token.type in OPERATOR_MAP:
+            if token.type == TokenType.SELECT:
+                conditions = sanitise(str(token.attributes), token.type)
+                query = QUERY_MAPPER[token.type].format(conditions=conditions)
+                query_stack.append(query)
 
-        if token.type == TokenType.SELECT:
-            conditions = sanitise(str(token.attributes), token.type)
-            query = QUERY_MAPPER[token.type].format(table_name=operands[0].value, conditions=conditions)
-            stack.append(query)
-
-        elif token.type == TokenType.PROJECTION:
-            column_names = sanitise(str(token.attributes), token.type)
-            query = QUERY_MAPPER[token.type].format(column_names=column_names, table_name=operands[0].value)
-            stack.append(query)
-
-    return Query(stack[0])
+            elif token.type == TokenType.PROJECTION:
+                column_names = sanitise(str(token.attributes), token.type)
+                query = QUERY_MAPPER[token.type].format(column_names=column_names)
+                query_stack.append(query)
 
 
 def sanitise(query_segment: str, token_type: TokenType):

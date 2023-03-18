@@ -3,18 +3,18 @@ from typing import List
 from ira.constants import *
 from ira.service.parser import binary_operators, unary_operators
 
-binary_operators_map = {value: key for key, value in binary_operators.items()}
-unary_operators_map = {value: key for key, value in unary_operators.items()}
+BINARY_OPERATOR_MAP = {value: key for key, value in binary_operators.items()}
+UNARY_OPERATOR_MAP = {value: key for key, value in unary_operators.items()}
 
-operator_map = {**binary_operators_map, **unary_operators_map}
+OPERATOR_MAP = {**BINARY_OPERATOR_MAP, **UNARY_OPERATOR_MAP}
 
 
 def is_binary_operator(token_type: TokenType):
-    return token_type in binary_operators_map
+    return token_type in BINARY_OPERATOR_MAP
 
 
 def is_unary_operator(token_type: TokenType):
-    return token_type in unary_operators_map
+    return token_type in UNARY_OPERATOR_MAP
 
 
 def split_string(string: str, delimiters: List):
