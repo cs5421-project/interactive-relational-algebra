@@ -3,14 +3,13 @@
 **Group 4**
 
 ## Descripton
-TODO
+A web app which allows users to input relational algebra query and view equivalent Postgres SQL query and it's output.
 
 
 ## Installation
 
 `pip3 install -r backend/requirements.txt`
 
-TODO: Fill in for frontend
 
 ## Commands to run app
 Please make sure backend is already running before running the frontend.
@@ -32,7 +31,7 @@ Please make sure backend is already running before running the frontend.
 `python3 manage.py runserver`
 
 ### To run the frontend
-TODO: Fill in commands
+ Simply open `index.html`
 
 
 ## Note
@@ -58,6 +57,6 @@ Datasets:
 iris csv: 
 https://gist.github.com/netj/8836201
 
-products and  sales csv:
+products and sales csv:
 https://www.sqlservercentral.com/articles/join-two-csv-files-with-a-common-column
 Note: Original dataset was delimited by semicolons, and this had been changed to commas.
