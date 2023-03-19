@@ -31,7 +31,7 @@ Please make sure backend is already running before running the frontend.
 `python3 manage.py runserver`
 
 ### To run the frontend
- Simply open `index.html`
+ Simply open `index.html`. It is found under the frontend folder. If you are not seeing the query result ensure that the backend server is running. 
 
 
 ## Note
