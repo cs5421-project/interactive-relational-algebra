@@ -41,7 +41,7 @@ To checkout the backend api:
 
 - Run the backend app in your local machine.
 
-- [Export](https://learning.postman.com/docs/getting-started/importing-and-exporting-data/#exporting-collections) the  [relevant postman collection](https://elements.getpostman.com/redirect?entityId=17271995-fb1500f7-97c0-4fac-a890-b549a4a924d8&entityType=collection).
+- [Export](https://learning.postman.com/docs/getting-started/importing-and-exporting-data/#exporting-collections) the  [**relevant postman collection here**](https://elements.getpostman.com/redirect?entityId=17271995-fb1500f7-97c0-4fac-a890-b549a4a924d8&entityType=collection).
 
 - Load it in your desktop postman app.
 
