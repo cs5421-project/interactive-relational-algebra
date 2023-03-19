@@ -92,10 +92,11 @@ class Lexer:
         return ch in self.reserved_tokens or ch == " "
 
     def get_literal_token(self, cur_ident):
-        if cur_ident.isalnum() and not cur_ident.isnumeric():
-            return (Token(cur_ident, TokenType.IDENT))
-        else:
+        if cur_ident.isalnum() and cur_ident.isnumeric():
             return (Token(cur_ident, TokenType.DIGIT))
+        else:
+            return (Token(cur_ident, TokenType.IDENT))
+
 
     def is_same_type(self, cur_ident, ch):
         if cur_ident.isnumeric() and not ch.isnumeric():

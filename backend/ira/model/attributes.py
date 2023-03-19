@@ -8,6 +8,10 @@ class Attributes:
         self.value = value
         self.column_names = self.get_column_names()
 
+    def __eq__(self, __o: object) -> bool:
+        return isinstance(__o, Attributes) and \
+            self.value == __o.value and self.column_names == __o.column_names
+
     def __str__(self):
         result = ""
         for token in self.value:
@@ -28,7 +32,8 @@ class Attributes:
             conditions = split_string(str(self), LOGICAL_OPERATORS)
             column_names = []
             for condition in conditions:
-                condition_segments = split_string(condition, COMPARATIVE_OPERATORS)
+                condition_segments = split_string(
+                    condition, COMPARATIVE_OPERATORS)
                 column_name = condition_segments[0]
                 column_names.append(column_name)
             return column_names
