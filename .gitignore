@@ -4,3 +4,5 @@
 backend/.idea/
 
 ra_parser/.idea/
+
+__pycache__/
