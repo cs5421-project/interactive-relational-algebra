@@ -10,11 +10,13 @@ class Lexer:
     """
 
     def __init__(self):
+        # TODO: Deprecate this  constant definitions in favour of constants module.
         self.reserved_tokens = {
             SELECT: TokenType.SELECT, PROJECTION: TokenType.PROJECTION, UNION: TokenType.UNION,
             NATURAL_JOIN: TokenType.NATURAL_JOIN, "=": TokenType.EQUALS,
             AND: TokenType.AND, OR: TokenType.OR, NOT: TokenType.NOT, ARROW: TokenType.ARROW,
-            PRODUCT: TokenType.PRODUCT, DIFFERENCE: TokenType.DIFFERENCE, DIVISION: TokenType.DIVISION, CARTESIAN:TokenType.CARTESIAN
+            PRODUCT: TokenType.PRODUCT, DIFFERENCE: TokenType.DIFFERENCE, DIVISION: TokenType.DIVISION,
+            CARTESIAN:TokenType.CARTESIAN, INTERSECTION: TokenType.INTERSECTION
         }
 
         self.unary_tokens = {

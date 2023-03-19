@@ -30,7 +30,7 @@ class LexerTestCase(TestCase):
             "⋈", TokenType.NATURAL_JOIN), Token("STable", TokenType.IDENT)]
         self.assertListEqual(tokens, expected)
 
-    def test_simple_projet(self):
+    def test_simple_project(self):
         input = "π name,age (A)"
         tokens = self.lexer.tokenize(input)
         attribute = [Token("name,age", TokenType.IDENT)]

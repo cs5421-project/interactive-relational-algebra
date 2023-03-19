@@ -1,4 +1,5 @@
-from ira.constants import LOGICAL_OPERATORS, TokenType, COMPARATIVE_OPERATORS
+from ira.constants import LOGICAL_OPERATORS, COMPARATIVE_OPERATORS
+from ira.enum.token_type import TokenType
 from ira.service.util import split_string
 
 

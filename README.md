@@ -3,7 +3,7 @@
 **Group 4**
 
 ## Descripton
-A web app which allows users to input relational algebra query and view equivalent Postgres SQL query and it's output.
+A web app which allows users to input relational algebra query and view equivalent PostgreSQL query and its output.
 
 
 ## Installation
