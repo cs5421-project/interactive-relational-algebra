@@ -1,0 +1,119 @@
+from typing import List
+
+from ira.service.util import is_binary_operator, is_unary_operator
+from ira.constants import TOKEN_TYPE_OPERATORS
+from ira.enum.token_type import TokenType
+from ira.model.token import Token
+from ira.service.lexer import Lexer
+
+TAG_NAME_MAPPER = {
+    TokenType.SELECT: "select",
+    TokenType.PROJECTION: "projection",
+    TokenType.RENAME: "rename",
+    TokenType.IDENT: "relation",
+    TokenType.CARTESIAN: "cartesian_product",
+    TokenType.UNION: "union",
+    TokenType.INTERSECTION: "intersection",
+    TokenType.DIFFERENCE: "difference",
+    TokenType.NATURAL_JOIN: "natural_join",
+    TokenType.ANTI_JOIN: "anti_join",
+    TokenType.LEFT_JOIN: "left_join",
+    TokenType.RIGHT_JOIN: "right_join",
+}
+
+
+class XmlNode:
+    def __init__(self, tag_name="", value=None):
+        self.children = []
+        self.tag_name = tag_name
+        self.value = value
+
+    def set_tag_name(self, token_type):
+        self.tag_name = TAG_NAME_MAPPER[token_type]
+
+    def add_child(self, child: object):
+        self.children.append(child)
+
+    def get_tree(self, indent=0):
+        tree = ' '*indent + "<"+self.tag_name+">\n"
+        if self.value != None:
+            tree += ' '*(indent+2) + self.value + '\n'
+        for child in self.children:
+            tree += child.get_tree(indent + 2)
+
+        tree += ' '*indent + "</" + self.tag_name + ">\n"
+        return tree
+
+
+def convert_tokenized_ra_to_xml(tokens: List[Token], tag_name="ra_expression"):
+    cur_node = XmlNode(tag_name)
+    if len(tokens) == 1:
+        return XmlNode(TAG_NAME_MAPPER[tokens[0].type], tokens[0].value)
+    i = 0
+    prev_start = 0
+    while i < len(tokens):
+        print(i, prev_start, tokens[i].value, tag_name)
+        if tokens[i].type == TokenType.OPEN_PARENTHESIS:
+            end_parenthesis = find_matching_parenthesis(tokens)
+            child_node = XmlNode("parenthesis")
+            child_node.add_child(convert_tokenized_ra_to_xml(
+                tokens[i+1:end_parenthesis], "query"))
+            cur_node.add_child(child_node)
+            i = end_parenthesis + 1
+        elif is_binary_operator(tokens[i].type):
+            child_node = XmlNode(TAG_NAME_MAPPER[tokens[i].type])
+            if tokens[i].attributes != None:
+                child_node.add_child(
+                    XmlNode("attributes", str(tokens[i].attributes)))
+            rhs_query_end = find_query_end(tokens, i+1)
+            child_node.add_child(
+                convert_tokenized_ra_to_xml(tokens[prev_start: i], "query"))
+            child_node.add_child(convert_tokenized_ra_to_xml(
+                tokens[i + 1: rhs_query_end], "query"))
+            cur_node.add_child(child_node)
+            i = rhs_query_end
+            prev_start = i
+        elif is_unary_operator(tokens[i].type):
+            child_node = XmlNode(TAG_NAME_MAPPER[tokens[i].type])
+            if tokens[i].attributes != None:
+                child_node.add_child(
+                    XmlNode("attributes", str(tokens[i].attributes)))
+            query_end = find_query_end(tokens, i+1)
+            child_node.add_child(
+                convert_tokenized_ra_to_xml(tokens[i+1: query_end], "query"))
+            cur_node.add_child(child_node)
+            i = query_end
+            prev_start = i
+        else:
+            i += 1
+    return cur_node
+
+
+def find_query_end(tokens: List[Token], start):
+    while start < len(tokens):
+        if tokens[start].type == TokenType.OPEN_PARENTHESIS:
+            end_parenthesis = find_matching_parenthesis(tokens)
+            start = end_parenthesis + 1
+
+        if tokens[start].type in TOKEN_TYPE_OPERATORS:
+            return start
+
+        start += 1
+    return len(tokens)
+
+
+def find_matching_parenthesis(tokens: List[Token], start=0):
+    '''Finds the ending bracket which matches the opening bracket'''
+    # Count of open brackets
+    count = 0
+    for i in range(start, len(tokens)):
+        if tokens[i].type == TokenType.OPEN_PARENTHESIS:
+            count += 1
+        elif tokens[i].type == TokenType.CLOSED_PARENTHESIS:
+            count -= 1
+
+        if count < 0:
+            raise Exception("Too many ) in the expression")
+        if count == 0:
+            return i  # position of the correct closing parenthesis
+    return None
