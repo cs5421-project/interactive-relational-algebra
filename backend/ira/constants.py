@@ -9,6 +9,7 @@ NATURAL_JOIN = '⋈'
 LEFT_JOIN = '⧑'
 RIGHT_JOIN = '⧒'
 FULL_JOIN = '⧓'
+ANTI_JOIN = '▷'
 PROJECTION = 'π'
 SELECT = 'σ'
 RENAME = 'ρ'
@@ -31,7 +32,8 @@ BINARY_OPERATORS = {NATURAL_JOIN: TokenType.NATURAL_JOIN, LEFT_JOIN: TokenType.L
                     RIGHT_JOIN: TokenType.RIGHT_JOIN,
                     DIFFERENCE: TokenType.DIFFERENCE, PRODUCT: TokenType.PRODUCT,
                     INTERSECTION: TokenType.INTERSECTION, UNION: TokenType.UNION,
-                    DIVISION: TokenType.DIVISION, CARTESIAN: TokenType.CARTESIAN}
+                    DIVISION: TokenType.DIVISION, CARTESIAN: TokenType.CARTESIAN,
+                    ANTI_JOIN: TokenType.ANTI_JOIN}
 UNARY_OPERATORS = {SELECT: TokenType.SELECT, PROJECTION: TokenType.PROJECTION, RENAME: TokenType.RENAME}
 
 TOKEN_TYPE_TO_BINARY_OPERATOR = {value: key for key, value in BINARY_OPERATORS.items()}

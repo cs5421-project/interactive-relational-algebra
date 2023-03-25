@@ -16,7 +16,8 @@ class Lexer:
             NATURAL_JOIN: TokenType.NATURAL_JOIN, "=": TokenType.EQUALS,
             AND: TokenType.AND, OR: TokenType.OR, NOT: TokenType.NOT, ARROW: TokenType.ARROW,
             PRODUCT: TokenType.PRODUCT, DIFFERENCE: TokenType.DIFFERENCE, DIVISION: TokenType.DIVISION,
-            CARTESIAN:TokenType.CARTESIAN, INTERSECTION: TokenType.INTERSECTION
+            CARTESIAN:TokenType.CARTESIAN, INTERSECTION: TokenType.INTERSECTION,
+            ANTI_JOIN: TokenType.ANTI_JOIN
         }
 
         self.unary_tokens = {
