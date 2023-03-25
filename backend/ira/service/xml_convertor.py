@@ -52,40 +52,33 @@ def convert_tokenized_ra_to_xml(tokens: List[Token], tag_name="ra_expression"):
     i = 0
     prev_start = 0
     while i < len(tokens):
-        print(i, prev_start, tokens[i].value, tag_name)
         if tokens[i].type == TokenType.OPEN_PARENTHESIS:
-            end_parenthesis = find_matching_parenthesis(tokens)
+            end_parenthesis = find_matching_parenthesis(tokens, i)
             child_node = XmlNode("parenthesis")
             child_node.add_child(convert_tokenized_ra_to_xml(
                 tokens[i+1:end_parenthesis], "query"))
             cur_node.add_child(child_node)
             i = end_parenthesis + 1
-        elif is_binary_operator(tokens[i].type):
-            child_node = XmlNode(TAG_NAME_MAPPER[tokens[i].type])
-            if tokens[i].attributes != None:
-                child_node.add_child(
-                    XmlNode("attributes", str(tokens[i].attributes)))
-            rhs_query_end = find_query_end(tokens, i+1)
-            child_node.add_child(
-                convert_tokenized_ra_to_xml(tokens[prev_start: i], "query"))
-            child_node.add_child(convert_tokenized_ra_to_xml(
-                tokens[i + 1: rhs_query_end], "query"))
+        elif tokens[i].type == TokenType.IDENT:
+            child_node = XmlNode(
+                TAG_NAME_MAPPER[tokens[i].type], tokens[i].value)
             cur_node.add_child(child_node)
-            i = rhs_query_end
-            prev_start = i
-        elif is_unary_operator(tokens[i].type):
-            child_node = XmlNode(TAG_NAME_MAPPER[tokens[i].type])
-            if tokens[i].attributes != None:
-                child_node.add_child(
-                    XmlNode("attributes", str(tokens[i].attributes)))
-            query_end = find_query_end(tokens, i+1)
-            child_node.add_child(
-                convert_tokenized_ra_to_xml(tokens[i+1: query_end], "query"))
-            cur_node.add_child(child_node)
-            i = query_end
-            prev_start = i
-        else:
             i += 1
+        elif is_binary_operator(tokens[i].type):
+            child_node = XmlNode("binary_operator")
+            child_node.add_child(XmlNode("operator", tokens[i].value))
+            cur_node.add_child(child_node)
+            i += 1
+        elif is_unary_operator(tokens[i].type):
+            child_node = XmlNode(
+                "unary_operator")
+            child_node.add_child(XmlNode("operator", tokens[i].value))
+            child_node.add_child(
+                XmlNode("attributes", str(tokens[i].attributes)))
+            cur_node.add_child(child_node)
+            i += 1
+        else:
+            raise Exception("Unidentifiable token in xml convertor")
     return cur_node
 
 

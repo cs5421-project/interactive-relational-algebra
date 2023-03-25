@@ -22,21 +22,21 @@ class XmlConverterTestCase(TestCase):
         tokens = self.lexer.tokenize(input)
         xml = convert_tokenized_ra_to_xml(tokens)
         tree = xml.get_tree()
-
         expected = """\
             <ra_expression>
-                <select>
-                <attributes>
-                    a=10
-                </attributes>
-                <query>
-                    <parenthesis>
+                <unary_operator>
+                    <operator>
+                        σ
+                    </operator>
+                    <attributes>
+                        a=10
+                    </attributes>
+                </unary_operator>
+                <parenthesis>
                     <relation>
                         R
                     </relation>
-                    </parenthesis>
-                </query>
-                </select>
+                </parenthesis>
             </ra_expression>
             """
         self.assertEqual(self.compare_xmls(tree, expected), True)
@@ -47,18 +47,19 @@ class XmlConverterTestCase(TestCase):
         tree = xml.get_tree()
         expected = """\
             <ra_expression>
-                <select>
-                <attributes>
-                    a1=10
-                </attributes>
-                <query>
-                    <parenthesis>
+                <unary_operator>
+                    <operator>
+                        σ
+                    </operator>
+                    <attributes>
+                        a1=10
+                    </attributes>
+                </unary_operator>
+                <parenthesis>
                     <relation>
                         R22
                     </relation>
-                    </parenthesis>
-                </query>
-                </select>
+                </parenthesis>
             </ra_expression>
             """
         self.assertEqual(self.compare_xmls(tree, expected), True)
@@ -70,14 +71,17 @@ class XmlConverterTestCase(TestCase):
         tree = xml.get_tree()
         expected = """\
         <ra_expression>
-          <natural_join>
             <relation>
                 RTable
             </relation>
+            <binary_operator>
+                <operator>
+                    ⋈
+                </operator>
+            </binary_operator>
             <relation>
                 STable
             </relation>
-          </natural_join>
         </ra_expression>
         """
         self.assertEqual(self.compare_xmls(tree, expected), True)
@@ -89,44 +93,72 @@ class XmlConverterTestCase(TestCase):
         tree = xml.get_tree()
         expected = """\
             <ra_expression>
-              <anti_join>
-                <relation>
-                  R
-                </relation>
-                <relation>
-                  S
-                </relation>
-              </anti_join>
+            <relation>
+                R
+            </relation>
+            <binary_operator>
+                <operator>
+                    ▷
+                </operator>
+            </binary_operator>
+            <relation>
+                S
+            </relation>
             </ra_expression>
             """
         self.assertEqual(self.compare_xmls(tree, expected), True)
 
-    # def test_unions_to_xml(self):
-    #     input = "A ∪ B ∪ C"
-    #     tokens = self.lexer.tokenize(input)
-    #     xml = convert_tokenized_ra_to_xml(tokens)
-    #     tree = xml.get_tree()
-    #     print(tree)
+    def test_unions_to_xml(self):
+        input = "A ∪ B ∪ C"
+        tokens = self.lexer.tokenize(input)
+        xml = convert_tokenized_ra_to_xml(tokens)
+        tree = xml.get_tree()
+        expected = """\
+            <ra_expression>
+                <relation>
+                    A
+                </relation>
+                <binary_operator>
+                    <operator>
+                        ∪
+                    </operator>
+                </binary_operator>
+                <relation>
+                    B
+                </relation>
+                <binary_operator>
+                    <operator>
+                        ∪
+                    </operator>
+                </binary_operator>
+                <relation>
+                    C
+                </relation>
+            </ra_expression>
+            """
+        self.assertEqual(self.compare_xmls(tree, expected), True)
 
     def test_simple_project(self):
         input = "π name,age (A)"
         tokens = self.lexer.tokenize(input)
         xml = convert_tokenized_ra_to_xml(tokens)
         tree = xml.get_tree()
+
         expected = """\
             <ra_expression>
-                <projection>
-                    <attributes>
-                        name,age
-                    </attributes>
-                    <query>
-                        <parenthesis>
-                            <relation>
-                                A
-                            </relation>
-                        </parenthesis>
-                    </query>
-                </projection>
+            <unary_operator>
+                <operator>
+                    π
+                </operator>
+                <attributes>
+                    name,age
+                </attributes>
+            </unary_operator>
+            <parenthesis>
+                <relation>
+                    A
+                </relation>
+            </parenthesis>
             </ra_expression>
             """
         self.assertEqual(self.compare_xmls(tree, expected), True)
