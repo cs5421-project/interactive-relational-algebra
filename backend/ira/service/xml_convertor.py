@@ -4,7 +4,7 @@ from ira.service.util import is_binary_operator, is_unary_operator
 from ira.constants import TOKEN_TYPE_OPERATORS
 from ira.enum.token_type import TokenType
 from ira.model.token import Token
-from ira.service.lexer import Lexer
+
 
 TAG_NAME_MAPPER = {
     TokenType.SELECT: "select",
@@ -19,6 +19,7 @@ TAG_NAME_MAPPER = {
     TokenType.ANTI_JOIN: "anti_join",
     TokenType.LEFT_JOIN: "left_join",
     TokenType.RIGHT_JOIN: "right_join",
+    TokenType.FULL_JOIN: "full_join"
 }
 
 
@@ -50,7 +51,6 @@ def convert_tokenized_ra_to_xml(tokens: List[Token], tag_name="ra_expression"):
     if len(tokens) == 1:
         return XmlNode(TAG_NAME_MAPPER[tokens[0].type], tokens[0].value)
     i = 0
-    prev_start = 0
     while i < len(tokens):
         if tokens[i].type == TokenType.OPEN_PARENTHESIS:
             end_parenthesis = find_matching_parenthesis(tokens, i)

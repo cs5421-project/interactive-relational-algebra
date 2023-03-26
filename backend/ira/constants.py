@@ -39,7 +39,7 @@ COMPARATIVE_OPERATORS_TO_TOKEN_TYPE = {GREATER_THAN: TokenType.GREATER_THAN, LES
 
 BINARY_OPERATORS_TO_TOKEN_TYPE = {NATURAL_JOIN: TokenType.NATURAL_JOIN, LEFT_JOIN: TokenType.LEFT_JOIN,
                                   RIGHT_JOIN: TokenType.RIGHT_JOIN, FULL_JOIN: TokenType.FULL_JOIN,
-                                  DIFFERENCE: TokenType.DIFFERENCE,
+                                  DIFFERENCE: TokenType.DIFFERENCE, ANTI_JOIN:TokenType.ANTI_JOIN,
                                   INTERSECTION: TokenType.INTERSECTION, UNION: TokenType.UNION,
                                   DIVISION: TokenType.DIVISION, CARTESIAN: TokenType.CARTESIAN,
                                   **LOGICAL_OPERATORS_TO_TOKEN_TYPE}

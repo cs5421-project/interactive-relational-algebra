@@ -106,7 +106,7 @@ class XmlConverterTestCase(TestCase):
             </relation>
             </ra_expression>
             """
-        self.assertEqual(self.compare_xmls(tree, expected), True)
+        self.assertTrue(self.compare_xmls(tree, expected))
 
     def test_unions_to_xml(self):
         input = "A ∪ B ∪ C"

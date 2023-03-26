@@ -10,7 +10,11 @@ class Output:
         self.status_code = status_code
         self.message = message
         self.result = result
-        self.value = {"sqlQuery": getattr(query,'value',''),
-                      "message": message,
-                      "result": result}
+        if query:
+            self.value = {"sqlQuery": query.value,
+                          "message": message,
+                          "result": result}
+        else:
+            self.value = {"message": message,
+                          "result": result}
 
