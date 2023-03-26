@@ -1,8 +1,8 @@
-from django.test import TestCase
+from django.test import SimpleTestCase
 from ira.service.lexer import Lexer, Token, TokenType
 
 
-class LexerTestCase(TestCase):
+class LexerTestCase(SimpleTestCase):
     def setUp(self):
         self.lexer: Lexer = Lexer()
 

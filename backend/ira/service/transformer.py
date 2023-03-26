@@ -6,6 +6,14 @@ from ira.model.attributes import Attributes
 from ira.model.query import Query
 from ira.model.token import Token
 
+N_JOIN_BASE_QUERY = ["select * from {{}} natural {join_type} join {{}};",
+                     "select * from {{}} {join_type} join {{}} on {{conditions}};"]
+
+
+def get_n_join_queries(join_type):
+    return tuple(query.format(join_type=join_type) for query in N_JOIN_BASE_QUERY)
+
+
 QUERY_MAPPER = {TokenType.SELECT: "select * from {{}} where {conditions};",
                 TokenType.PROJECTION: "select distinct {column_names} from {{}};",
                 TokenType.NATURAL_JOIN: "select * from {} natural join {};",
@@ -13,7 +21,10 @@ QUERY_MAPPER = {TokenType.SELECT: "select * from {{}} where {conditions};",
                 TokenType.CARTESIAN: "select * from {} cross join {};",
                 TokenType.UNION: "{} union {}",
                 TokenType.INTERSECTION: "{} intersect {}",
-                TokenType.DIFFERENCE: "{} except {}"}
+                TokenType.DIFFERENCE: "{} except {}",
+                TokenType.LEFT_JOIN: get_n_join_queries("left"),
+                TokenType.RIGHT_JOIN: get_n_join_queries("right"),
+                TokenType.FULL_JOIN: get_n_join_queries("full")}
 
 
 def transform(parsed_postfix_tokens: List[Token]) -> Query:
@@ -43,7 +54,8 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
                 if parent_token.type not in [TokenType.UNION, TokenType.INTERSECTION, TokenType.DIFFERENCE]:
                     query_stack.append((None, current_token))
                 elif not parent_token:
-                    raise Exception("RA query not well formed; Possible reason: binary operator ({{parent_token}}) not "
+                    raise Exception("Syntactic exception: RA query not well formed; "
+                                    "Possible reason: binary operator ({{parent_token}}) not "
                                     "getting 2 operands.".format(parent_token=parent_token))
                 else:
                     query = QUERY_MAPPER[current_token.type].format(table_name=current_token.value)
@@ -60,10 +72,20 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
             query = QUERY_MAPPER[current_token.type].format(column_names=column_names)
             query_stack.append((query, current_token))
 
-        elif current_token.type in [TokenType.NATURAL_JOIN, TokenType.CARTESIAN, TokenType.UNION,
-                                    TokenType.INTERSECTION, TokenType.DIFFERENCE]:
-            # TODO accept conditional attribute once tokenizer and parser allows it
+        elif current_token.type in (TokenType.NATURAL_JOIN, TokenType.RIGHT_JOIN, TokenType.FULL_JOIN,
+                                    TokenType.LEFT_JOIN, TokenType.FULL_JOIN, TokenType.CARTESIAN, TokenType.UNION,
+                                    TokenType.INTERSECTION, TokenType.DIFFERENCE):
+
             query = QUERY_MAPPER[current_token.type]
+            is_certain_join = current_token.type in(TokenType.LEFT_JOIN,
+                                                                  TokenType.RIGHT_JOIN,
+                                                                  TokenType.FULL_JOIN)
+            if current_token.attributes and is_certain_join:
+                # If certain join operator has attributes, it implies that it is a type of conditional/equi join
+                conditions = sanitise(current_token.attributes, current_token.type)
+                query = query[-1].format("{}", "{}", conditions=conditions)
+            elif is_certain_join :
+                query = query[0]
             query_stack.append((query, current_token))
 
 
@@ -158,9 +180,11 @@ def sanitise(attributes: Attributes, token_type: TokenType):
     if token_type == TokenType.PROJECTION:
         return ",".join('"{column_name}"'.format(column_name=column_name)
                         for column_name in attributes.get_column_names())
-    elif token_type == TokenType.SELECT:
+    elif token_type in (TokenType.SELECT, TokenType.NATURAL_JOIN,
+                        TokenType.FULL_JOIN, TokenType.RIGHT_JOIN,
+                        TokenType.LEFT_JOIN):
         query_segment = str(attributes)
-        for column_name in attributes.get_column_names():
+        for column_name in attributes.column_names:
             query_segment = query_segment.replace(column_name, '"{column_name}"'
                                                   .format(column_name=column_name))
         return query_segment

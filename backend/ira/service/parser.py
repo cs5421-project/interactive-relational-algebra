@@ -6,10 +6,10 @@ from ira.constants import *
 class Parser:
     def __init__(self):
         self.precedence = {}
-        for op in UNARY_OPERATORS:
-            self.precedence[UNARY_OPERATORS[op]] = 2
-        for op in BINARY_OPERATORS:
-            self.precedence[BINARY_OPERATORS[op]] = 1
+        for op in UNARY_OPERATORS_TO_TOKEN_TYPE:
+            self.precedence[UNARY_OPERATORS_TO_TOKEN_TYPE[op]] = 2
+        for op in BINARY_OPERATORS_TO_TOKEN_TYPE:
+            self.precedence[BINARY_OPERATORS_TO_TOKEN_TYPE[op]] = 1
 
     def parse(self, tokens: List[Token]):
 

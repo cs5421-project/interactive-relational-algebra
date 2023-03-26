@@ -1,5 +1,6 @@
 from ira.constants import LOGICAL_OPERATORS, COMPARATIVE_OPERATORS
 from ira.enum.token_type import TokenType
+from ira.service.pre_populator import ACTIVE_COLUMN_NAMES
 from ira.service.util import split_string
 
 
@@ -28,13 +29,17 @@ class Attributes:
     def get_column_names(self):
         if self.parent_token.type == TokenType.PROJECTION:
             return str(self).split(',')
-        elif self.parent_token.type == TokenType.SELECT:
-            # Selection
+        elif self.parent_token.type in (TokenType.SELECT,TokenType.NATURAL_JOIN,
+                                        TokenType.FULL_JOIN, TokenType.RIGHT_JOIN,
+                                        TokenType.LEFT_JOIN):
             conditions = split_string(str(self), LOGICAL_OPERATORS)
-            column_names = []
+            column_names = set()
             for condition in conditions:
                 condition_segments = split_string(
                     condition, COMPARATIVE_OPERATORS)
-                column_name = condition_segments[0]
-                column_names.append(column_name)
+                column_name_with_possible_alias = condition_segments[0]
+                column_name = column_name_with_possible_alias.split('.')[-1]
+                column_names.add(column_name)
             return column_names
+
+

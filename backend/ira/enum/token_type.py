@@ -25,3 +25,8 @@ class TokenType(enum.Enum):
     PRODUCT = 20
     DIVISION = 21
     EXPRESSION = 22
+    FULL_JOIN = 23
+    GREATER_THAN = 24
+    LESSER_THAN = 25
+    GREATER_THAN_OR_EQUALS_TO = 26
+    LESSER_THAN_OR_EQUALS_TO = 27
