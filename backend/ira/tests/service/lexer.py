@@ -30,6 +30,13 @@ class LexerTestCase(SimpleTestCase):
             "⋈", TokenType.NATURAL_JOIN), Token("STable", TokenType.IDENT)]
         self.assertListEqual(tokens, expected)
 
+    def test_simple_anti_join(self):
+        input = "R ▷ S"
+        tokens = self.lexer.tokenize(input)
+        expected = [Token("R", TokenType.IDENT), Token(
+            "▷", TokenType.ANTI_JOIN), Token("S", TokenType.IDENT)]
+        self.assertListEqual(tokens, expected)
+
     def test_simple_project(self):
         input = "π name,age (A)"
         tokens = self.lexer.tokenize(input)

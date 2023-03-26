@@ -33,6 +33,18 @@ Please make sure backend is already running before running the frontend.
 ### To run the frontend
  Simply open `index.html`. It is found under the frontend folder. If you are not seeing the query result ensure that the backend server is running. 
 
+## Grammar
+```
+IDENT = ( LETTER )( LETTER | DIGIT | '_')*
+QUERY = IDENT
+QUERY = QUERY BIN_OP QUERY
+QUERY = σ SELECTIONEXPR (QUERY)
+QUERY = π COLUMNLIST (QUERY)
+SELECTIONEXPR = conditional_epxression | '(' conditional_expression ((and|or|not)(conditional_expression))* ')'
+COLUMNLIST = IDENT | IDENT ',' COLUMNLIST
+BIN_OP = * | - | ∪ | ∩ | ÷ | ⨝ 
+```
+
 
 ## Note
 To checkout the backend api: 
