@@ -8,6 +8,11 @@ var resultInfo = document.getElementById("info-tag");
 var resultTable = document.getElementById("result-table");
 var sqlQuery = document.getElementById("sql-query");
 var resultContainer = document.getElementById("result-container");
+const uploadIcon = document.getElementById("upload-icon");
+const downloadIcon = document.getElementById("download-icon");
+const fileInput = document.getElementById("file-upload");
+
+
 form.onsubmit = handleSubmit
 
 
@@ -98,6 +103,29 @@ function buildTable(data) {
 function displaySQLQuery(data) {
    sqlQuery.innerText = `SQL QUERY: ${data}`
 }
+
+uploadIcon.addEventListener("click", () => {
+   fileInput.click();
+});
+
+downloadIcon.addEventListener("click", () => {
+   //write code to call the api end point for RAQ -> XML
+   //to be done
+});
+
+//read input file
+fileInput.addEventListener("change", (event) => {
+   const file = event.target.files[0];
+
+   const reader = new FileReader();
+   reader.onload = (e) => {
+      const contents = e.target.result;
+      //write code to call the api end point for XML -> RAQ
+      //to be done
+   };
+   reader.readAsText(file);
+});
+
 
 // data = [
 //    {
