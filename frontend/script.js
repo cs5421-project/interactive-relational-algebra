@@ -1,5 +1,7 @@
 var host = "http://127.0.0.1:8000"
-url = `${host}/v1/ira/execute_ra_query`; //endpoint of the server
+submitURL = `${host}/v1/ira/execute_ra_query`; //endpoint of execute ra query
+uploadURL = `${host}/v1/ira/load_xml`; //endpoint of upload
+downloadURL = `${host}/v1/ira/download_xml`; //endpoint of download
 
 var textArea = document.getElementById("editor");
 var form = document.getElementById("query-form");
@@ -26,7 +28,7 @@ function handleSubmit(event) {
    var query = textArea.value;
 
    //post
-   fetch(url, {
+   fetch(submitURL, {
       method: 'POST',
       headers: {
          'Content-Type': 'application/json',
@@ -110,7 +112,30 @@ uploadIcon.addEventListener("click", () => {
 
 downloadIcon.addEventListener("click", () => {
    //write code to call the api end point for RAQ -> XML
-   //to be done
+   var contents = textArea.value.trim()
+   if (!contents.length) {
+      alert("no raq provided in the editor")
+      return
+   }
+
+   fetch(downloadURL, {
+      method: 'POST',
+      headers: {
+         'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ "raQuery": contents })
+   })
+      .then(response => response.blob())
+      .then(data => {
+         var a = document.createElement("a");
+         a.href = window.URL.createObjectURL(data);
+         a.download = "response.xml";
+         a.click();
+         URL.revokeObjectURL(a.href);
+      })
+      .catch((error) => {
+         console.log("error", error)
+      });
 });
 
 //read input file
@@ -121,9 +146,26 @@ fileInput.addEventListener("change", (event) => {
    reader.onload = (e) => {
       const contents = e.target.result;
       //write code to call the api end point for XML -> RAQ
-      //to be done
+      fetch(uploadURL, {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({ "content": contents })
+      })
+         .then(response => response.json())
+         .then(data => {
+            if ('raq' in data) {
+               textArea.value = "";
+               textArea.value = data.raq
+            }
+         })
+         .catch((error) => {
+            console.log("error", error)
+         });
    };
    reader.readAsText(file);
+   fileInput.value = "";
 });
 
 
