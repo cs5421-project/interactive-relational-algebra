@@ -40,9 +40,10 @@ QUERY = IDENT
 QUERY = QUERY BIN_OP QUERY
 QUERY = σ SELECTIONEXPR (QUERY)
 QUERY = π COLUMNLIST (QUERY)
+QUERY = ρ IDENT ➡ IDENT (, IDENT ➡ IDENT)* (QUERY)
 SELECTIONEXPR = conditional_epxression | '(' conditional_expression ((and|or|not)(conditional_expression))* ')'
 COLUMNLIST = IDENT | IDENT ',' COLUMNLIST
-BIN_OP = * | - | ∪ | ∩ | ÷ | ⨝ 
+BIN_OP = * | - | ∪ | ∩ | ÷ | ⋈ | ⧑ | ⧒ | ⧓
 ```
 
 
