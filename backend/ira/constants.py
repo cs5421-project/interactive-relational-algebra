@@ -3,7 +3,6 @@ from ira.enum.token_type import TokenType
 DIFFERENCE = '-'
 UNION = '∪'
 INTERSECTION = '∩'
-DIVISION = '÷'
 NATURAL_JOIN = '⋈'
 LEFT_JOIN = '⧑'
 RIGHT_JOIN = '⧒'
@@ -31,21 +30,25 @@ CLOSED_PARENTHESIS = ')'
 LOGICAL_OPERATORS = (AND, OR, NOT)
 COMPARATIVE_OPERATORS = (GREATER_THAN, GREATER_THAN_OR_EQUALS_TO, LESSER_THAN, LESSER_THAN_OR_EQUALS_TO, EQUALS)
 
-LOGICAL_OPERATORS_TO_TOKEN_TYPE = {AND: TokenType.AND, NOT: TokenType.NOT, OR:TokenType.OR}
+LOGICAL_OPERATORS_TO_TOKEN_TYPE = {AND: TokenType.AND, NOT: TokenType.NOT, OR: TokenType.OR}
 
 COMPARATIVE_OPERATORS_TO_TOKEN_TYPE = {GREATER_THAN: TokenType.GREATER_THAN, LESSER_THAN: TokenType.LESSER_THAN,
                                        GREATER_THAN_OR_EQUALS_TO: TokenType.GREATER_THAN_OR_EQUALS_TO,
-                                       LESSER_THAN_OR_EQUALS_TO: TokenType.LESSER_THAN_OR_EQUALS_TO, EQUALS:TokenType.EQUALS}
+                                       LESSER_THAN_OR_EQUALS_TO: TokenType.LESSER_THAN_OR_EQUALS_TO,
+                                       EQUALS: TokenType.EQUALS}
 
-BINARY_OPERATORS_TO_TOKEN_TYPE = {NATURAL_JOIN: TokenType.NATURAL_JOIN, LEFT_JOIN: TokenType.LEFT_JOIN,
-                                  RIGHT_JOIN: TokenType.RIGHT_JOIN, FULL_JOIN: TokenType.FULL_JOIN,
-                                  DIFFERENCE: TokenType.DIFFERENCE, ANTI_JOIN:TokenType.ANTI_JOIN,
-                                  INTERSECTION: TokenType.INTERSECTION, UNION: TokenType.UNION,
-                                  DIVISION: TokenType.DIVISION, CARTESIAN: TokenType.CARTESIAN,
+QUERY_BINARY_OPERATORS_TO_TOKEN_TYPE = {NATURAL_JOIN: TokenType.NATURAL_JOIN, LEFT_JOIN: TokenType.LEFT_JOIN,
+                                        RIGHT_JOIN: TokenType.RIGHT_JOIN, FULL_JOIN: TokenType.FULL_JOIN,
+                                        DIFFERENCE: TokenType.DIFFERENCE, ANTI_JOIN: TokenType.ANTI_JOIN,
+                                        INTERSECTION: TokenType.INTERSECTION, UNION: TokenType.UNION,
+                                        CARTESIAN: TokenType.CARTESIAN}
+
+BINARY_OPERATORS_TO_TOKEN_TYPE = {**QUERY_BINARY_OPERATORS_TO_TOKEN_TYPE,
                                   **LOGICAL_OPERATORS_TO_TOKEN_TYPE}
 
 UNARY_OPERATORS_TO_TOKEN_TYPE = {SELECT: TokenType.SELECT, PROJECTION: TokenType.PROJECTION, RENAME: TokenType.RENAME}
 
+TOKEN_TYPE_TO_QUERY_BINARY_OPERATOR = {value: key for key, value in QUERY_BINARY_OPERATORS_TO_TOKEN_TYPE.items()}
 TOKEN_TYPE_TO_BINARY_OPERATOR = {value: key for key, value in BINARY_OPERATORS_TO_TOKEN_TYPE.items()}
 TOKEN_TYPE_TO_UNARY_OPERATOR = {value: key for key, value in UNARY_OPERATORS_TO_TOKEN_TYPE.items()}
 TOKEN_TYPE_TO_OPERATOR = {**TOKEN_TYPE_TO_BINARY_OPERATOR, **TOKEN_TYPE_TO_UNARY_OPERATOR}
