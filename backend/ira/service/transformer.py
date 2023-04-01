@@ -1,10 +1,12 @@
+from functools import lru_cache
 from typing import List
 
-from ira.constants import TOKEN_TYPE_OPERATORS, TOKEN_TYPE_TO_UNARY_OPERATOR, TOKEN_TYPE_TO_BINARY_OPERATOR
+from ira.constants import TOKEN_TYPE_OPERATORS, TOKEN_TYPE_TO_UNARY_OPERATOR, TOKEN_TYPE_TO_BINARY_OPERATOR, AND
 from ira.enum.token_type import TokenType
 from ira.model.attributes import Attributes
 from ira.model.query import Query
 from ira.model.token import Token
+from ira.service.pre_populator import TABLE_TO_COLUMN_NAMES
 
 N_JOIN_BASE_QUERY = ["select * from {{}} natural {join_type} join {{}};",
                      "select * from {{}} {join_type} join {{}} on {{conditions}};"]
@@ -13,6 +15,8 @@ N_JOIN_BASE_QUERY = ["select * from {{}} natural {join_type} join {{}};",
 def get_n_join_queries(join_type):
     return tuple(query.format(join_type=join_type) for query in N_JOIN_BASE_QUERY)
 
+
+ANTI_JOIN_RIGHT_ALIAS = "cq1"
 
 QUERY_MAPPER = {TokenType.SELECT: "select * from {{}} where {conditions};",
                 TokenType.PROJECTION: "select distinct {column_names} from {{}};",
@@ -26,12 +30,83 @@ QUERY_MAPPER = {TokenType.SELECT: "select * from {{}} where {conditions};",
                 TokenType.LEFT_JOIN: get_n_join_queries("left"),
                 TokenType.RIGHT_JOIN: get_n_join_queries("right"),
                 TokenType.FULL_JOIN: get_n_join_queries("full"),
-                TokenType.ANTI_JOIN: ("select * from {left_table_name} natural left join {right_table_name} where ("
-                                      "select column_name from"
-                                      "information_schema.columns where table_name={left_table_name} and column_name "
-                                      "in (select column_name from information_schema.columns where table_name={"
-                                      "right_table_name});",
-                                      "select * from {} left join {} on {conditions} where {null_conditions}")}
+                TokenType.DIVISION: "",
+                TokenType.ANTI_JOIN: "select * from {{}}  natural left join {{}} as {anti_join_right_alias}"
+                                     " where {null_conditions};"}
+
+
+# TODO: Iterative version
+def get_common_columns_for_anti_join(parsed_postfix_tokens: List[Token], index, common_columns, binary_operator_stack):
+    if index < 0:
+        raise Exception("Relational query is wrongly formed; Binary operator is missing operands")
+    if len(parsed_postfix_tokens) == 2:
+        if parsed_postfix_tokens[0].type == TokenType.IDENT and parsed_postfix_tokens[1].type == TokenType.IDENT:
+            return TABLE_TO_COLUMN_NAMES[parsed_postfix_tokens[0].value].intersection(
+                TABLE_TO_COLUMN_NAMES[parsed_postfix_tokens[1].value])
+        else:
+            raise Exception("Relational query is wrongly formed; Binary operator is missing operands")
+    current_token = parsed_postfix_tokens[index]
+    if current_token.type == TokenType.IDENT:
+        if index == 0:
+            if len(binary_operator_stack) == 0 or (
+                    len(binary_operator_stack) == 1 and binary_operator_stack[-1][-1] == 1):
+                return TABLE_TO_COLUMN_NAMES[current_token.value], index
+            else:
+                raise Exception("Relational query is wrongly formed; Binary operator is missing operands")
+        elif binary_operator_stack:
+            stored_token, number_of_binary_operators_seen = binary_operator_stack[-1]
+            if number_of_binary_operators_seen == 1:
+                binary_operator_stack.pop()
+                return TABLE_TO_COLUMN_NAMES[current_token.value], index
+            else:
+                binary_operator_stack[-1] = (stored_token, 1)
+                right_side_operand_columns = TABLE_TO_COLUMN_NAMES[current_token.value]
+                left_side_operand_common_column, left_side_index = get_common_columns_for_anti_join(
+                    parsed_postfix_tokens, index - 1, common_columns,
+                    binary_operator_stack)
+                # if union  or difference or intersect prefer the left operand over the right  one, since the
+                # assumption for this operator is that the number of columns are same and the column types are same.
+                if stored_token.type in (TokenType.UNION, TokenType.DIFFERENCE, TokenType.INTERSECTION):
+                    if len(left_side_operand_common_column) != len(right_side_operand_columns):
+                        raise Exception("Relational query is wrongly formed; Operator: {token} is supposed to have the"
+                                        " same number of columns".format(token=current_token))
+                    return left_side_operand_common_column, left_side_index
+                # if natural join or anti join use intersection.
+                elif stored_token.type in (TokenType.NATURAL_JOIN, TokenType.ANTI_JOIN):
+                    return right_side_operand_columns \
+                        .intersection(left_side_operand_common_column), left_side_index
+
+                # if division, then subtract the right one from the left one;
+                elif stored_token.type == TokenType.DIVISION:
+                    if len(left_side_operand_common_column) < len(right_side_operand_columns):
+                        raise Exception("Relational query is wrongly formed; Division operator expects the right"
+                                        " hand operand to be a proper subset of the left hand operand")
+                    return right_side_operand_columns.difference(left_side_operand_common_column), left_side_index
+
+                # if other join, cross join
+                return right_side_operand_columns.union(left_side_operand_common_column), left_side_index
+    elif current_token.type in TOKEN_TYPE_TO_BINARY_OPERATOR:
+        # Keeping track of token and the number of identifiers  yet to see
+        binary_operator_stack.append((current_token, 2))
+        if index == len(parsed_postfix_tokens) - 1:
+            # Starting point of anti-join
+            right, last_reached_index = get_common_columns_for_anti_join(parsed_postfix_tokens, index - 1,
+                                                                         common_columns,
+                                                                         binary_operator_stack)
+            left, _ = get_common_columns_for_anti_join(parsed_postfix_tokens, last_reached_index - 1, common_columns,
+                                                       binary_operator_stack)
+            return left.intersection(right)
+    elif current_token.type == TokenType.PROJECTION:
+        return current_token.attributes.get_column_names()
+    return get_common_columns_for_anti_join(parsed_postfix_tokens, index - 1, common_columns, binary_operator_stack)
+
+
+def generate_null_condition_for_anti_join(common_column_names, alias):
+    result = ""
+    for index in range(len(common_column_names)):
+        and_clause = AND if index + 1 != len(common_column_names) else ""
+        result += alias + '."' + common_column_names[index] + '" = null ' + and_clause + " "
+    return result
 
 
 def transform(parsed_postfix_tokens: List[Token]) -> Query:
@@ -79,6 +154,22 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
             query = QUERY_MAPPER[current_token.type].format(column_names=column_names)
             query_stack.append((query, current_token))
 
+        elif current_token.type == TokenType.ANTI_JOIN:
+            if current_token.attributes:
+                raise Exception("Anti join implementation does not support conditional join")
+            else:
+                common_column_names = get_common_columns_for_anti_join(parsed_postfix_tokens,
+                                                                       len(parsed_postfix_tokens) - 1, {}, [])
+                if not common_column_names:
+                    raise Exception(
+                        "Logical error; There are no common columns for the relation/subquery for the anti join operator")
+                null_conditions = generate_null_condition_for_anti_join(list(common_column_names),
+                                                                        ANTI_JOIN_RIGHT_ALIAS)
+                query = QUERY_MAPPER[current_token.type].format(null_conditions=null_conditions,
+                                                                anti_join_right_alias=ANTI_JOIN_RIGHT_ALIAS)
+                # TODO: Need to use those common columns and need to prefix the right table_name
+                query_stack.append((query, current_token))
+
         elif current_token.type in (TokenType.NATURAL_JOIN, TokenType.RIGHT_JOIN, TokenType.FULL_JOIN,
                                     TokenType.LEFT_JOIN, TokenType.FULL_JOIN, TokenType.CARTESIAN, TokenType.UNION,
                                     TokenType.INTERSECTION, TokenType.DIFFERENCE):
@@ -98,6 +189,7 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
 
 def generate_query(query_stack):
     # TODO: Make logic simpler
+
     number_of_subquery = 0
     if query_stack:
         current_query, token = query_stack.pop()
@@ -119,28 +211,54 @@ def generate_query(query_stack):
                             .format(number_of_subquery=number_of_subquery,
                                     column_name=column_name)
                         stored_query = stored_query.replace('"{}"'.format(column_name), alias_prefixed_column_name)
+                elif stored_token.type == TokenType.ANTI_JOIN:
+                    if "as" in query[len(query_stack) - 5:]:
+                        # alias keyword as is usually used in the last 5 characters q0
+                        query = query[:query.rindex("as")]
                 query = stored_query.format(query)
         return Query(query)
     else:
         raise Exception("Empty relational algebra given")
 
 
+# TODO: refactor redundant code
 def process_query_stack(query_stack, level, current_query):
     stored_query, stored_token = query_stack.pop()
     upcoming_operator_and_index = get_upcoming_operator_token(query_stack)
     index = upcoming_operator_and_index[-1] if upcoming_operator_and_index else None
     operator_token = upcoming_operator_and_index[0] if upcoming_operator_and_index else None
-    if is_alias_not_needed(index, operator_token, query_stack, upcoming_operator_and_index, None):
-        # For top level union, intersect or difference operation where operands don't involve subqueries
-        parent_query, _ = query_stack.pop()
+    if is_alias_not_needed(operator_token, index, query_stack, upcoming_operator_and_index, None):
+        # Alias not needed for top level union, intersect or difference operation  and for anti-joins
+        parent_query, parent_token = query_stack.pop()
+        if "as" in current_query[len(current_query) - 5:]:
+            # alias keyword as is usually used in the last 5 characters q0
+            current_query = current_query[:current_query.rindex("as")]
+        if parent_token.type == TokenType.ANTI_JOIN:
+            return parent_query.format(current_query, stored_token.value), None
         return parent_query.format(current_query.rstrip(';'), stored_query), None
     if stored_query is None:
         # stored_query is None for an identifier token dealing with binary op.
-        parent_query, _ = query_stack.pop()
-        if is_alias_not_needed(index, operator_token, query_stack, upcoming_operator_and_index, None):
+        parent_query, parent_token = query_stack.pop()
+        if is_alias_not_needed(operator_token, index, query_stack, upcoming_operator_and_index, None):
             # Fetches index of the upcoming binary operator and then relevant query, insert the current query as
             #  an operand to it, and update current query as stored_query + parent_query
+
             binary_token, index = get_upcoming_operator_token(query_stack, True)
+            is_ancestor_binary = parent_query is None and stored_query is None and current_query is not None
+            if is_ancestor_binary:
+                # Scenario where ident, ident, operator and current_query already exist
+                # Scenario where ident, ident, unary operator, binary operator and current_query already exist
+                parent_binary_token, parent_binary_index = get_upcoming_operator_token(
+                    query_stack[:len(query_stack) - 1],True)
+                query_stack[parent_binary_index] = (query_stack[parent_binary_index][0].format(current_query, "{}"),
+                                                    query_stack[parent_binary_index][-1])
+                binary_query, binary_token = query_stack.pop()
+                if binary_token.type == TokenType.ANTI_JOIN:
+                    query = binary_query.format(stored_token.value, parent_token.value)
+                else:
+                    query = get_query_with_alias(binary_query.format(stored_token.value, parent_token.value), level)
+                return query, binary_query
+
             if binary_token:
                 query_stack[index] = (query_stack[index][0].format(current_query, "{}"), query_stack[index][-1])
                 return parent_query.format(stored_token.value), stored_query
@@ -150,26 +268,65 @@ def process_query_stack(query_stack, level, current_query):
 
         # Do not need an alias if it is a top level query
         level = get_level(query_stack, level)
+
         binary_token, index = get_upcoming_operator_token(query_stack, True)
-        if binary_token:
+
+        is_ancestor_binary = parent_query is None and stored_query is None and current_query is not None
+        if is_ancestor_binary:
+            # Scenario where ident, ident, operator and current_query already exist
+            # Scenario where ident, ident, unary operator, binary operator and current_query already exist
+            parent_binary_token, parent_binary_index = get_upcoming_operator_token(query_stack[:len(query_stack) - 1],
+                                                                                   True)
+            if is_alias_not_needed(parent_binary_token,is_simple_mode=True):
+                if "as" in current_query[len(current_query) - 5:]:
+                    # alias keyword as is usually used in the last 5 characters q0
+                    current_query = current_query[:current_query.rindex("as")]
+                elif stored_token.type == TokenType.IDENT and parent_token.type == TokenType.IDENT \
+                        and current_query in TABLE_TO_COLUMN_NAMES:
+                    # For right associative scenario, example: (sales) ∪ ((sales) ⨯ (products));
+                    current_query = QUERY_MAPPER[TokenType.IDENT].format(table_name = current_query).rstrip(';')
+                query_stack[parent_binary_index] = (query_stack[parent_binary_index][0].format(current_query, "{}"),
+                                                    query_stack[parent_binary_index][-1])
+            binary_query, binary_token = query_stack.pop()
+            if binary_token.type == TokenType.ANTI_JOIN:
+                query = binary_query.format(stored_token.value, parent_token.value)
+            elif is_alias_not_needed(parent_binary_token, is_simple_mode=True):
+                    query = binary_query.format(stored_token.value, parent_token.value)
+            else:
+                    query = get_query_with_alias(binary_query.format(stored_token.value, parent_token.value), level)
+            return query, binary_query
+
+        elif binary_token:
+            parent_query = parent_token.value if not parent_query else parent_query
+            if level == 0:
+                # TODO check for any upcoming operator which does not need an alias
+                return get_query_with_alias(parent_query.format(current_query,stored_token.value).rstrip(';'),
+                                            level), stored_query
+
             query_stack[index] = (query_stack[index][0].format(current_query, "{}"), query_stack[index][-1])
-            return get_query_with_alias(parent_query.format(stored_token.value).rstrip(';'), level), stored_query
-        query = get_query_with_alias(parent_query.format(current_query, stored_token.value), level)
+            placeholder_length = parent_query.count("{}")
+
+            placeholders = ["{}" for _ in range(placeholder_length - 1 if placeholder_length >= 2 else 0)]
+            return get_query_with_alias(parent_query.format(stored_token.value, *placeholders).rstrip(';'), level), \
+                stored_query
+        query = get_query_with_alias(parent_query.format(current_query.rstrip(';'), stored_token.value), level)
     else:
         # Unary operation
-        if is_alias_not_needed(index, operator_token, query_stack, upcoming_operator_and_index, stored_query):
+        if is_alias_not_needed(operator_token, index, query_stack, upcoming_operator_and_index, stored_query):
             return stored_query.format(current_query), stored_query
         level = get_level(query_stack, level)
         query = get_query_with_alias(stored_query.format(current_query), level)
     return query, stored_query
 
 
-def is_alias_not_needed(index, operator_token, query_stack, upcoming_operator_and_index, stored_query):
+def is_alias_not_needed(operator_token, index=None, query_stack=None, upcoming_operator_and_index=None,
+                        stored_query=None, is_simple_mode = False):
     difference = 2 if stored_query else 1
-    return upcoming_operator_and_index and len(query_stack) - index == difference and operator_token.type in (
+    is_top_level = is_simple_mode or ( upcoming_operator_and_index and query_stack is not None and len(query_stack) - index == difference)
+    return operator_token.type == TokenType.ANTI_JOIN or (is_top_level and operator_token.type in (
         TokenType.UNION,
         TokenType.INTERSECTION,
-        TokenType.DIFFERENCE)
+        TokenType.DIFFERENCE))
 
 
 def get_upcoming_operator_token(query_stack, is_binary=None):

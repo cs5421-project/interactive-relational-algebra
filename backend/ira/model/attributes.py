@@ -1,6 +1,5 @@
 from ira.constants import LOGICAL_OPERATORS, COMPARATIVE_OPERATORS
 from ira.enum.token_type import TokenType
-from ira.service.pre_populator import ACTIVE_COLUMN_NAMES
 from ira.service.util import split_string
 
 

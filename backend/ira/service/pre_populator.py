@@ -14,7 +14,7 @@ MODULE_FOLDER = Path(os.path.abspath(os.path.dirname(__file__)))
 DATABASE_URL = "postgresql://{user}:{password}@localhost:5432/{database}" \
     .format(database=DATABASE_NAME, user=DATABASE_USER, password=DATABASE_PASSWORD)
 
-ACTIVE_COLUMN_NAMES = set()
+TABLE_TO_COLUMN_NAMES = dict()
 
 
 def pre_populate():
@@ -29,7 +29,21 @@ def pre_populate():
                           "a column name has invalid literal '.'".format(csv_file_path=csv_file_path))
             continue
         try:
-            dataframe.to_sql(csv_file_path.split('/').pop().split('.')[0],
+            column_names = list(dataframe.columns)
+            column_names_unique = set(dataframe.columns)
+            table_name = csv_file_path.split('/').pop().split('.')[0]
+
+            if len(column_names) != len(column_names_unique):
+                raise Exception("Pre-populating database, and found a table {table_name} to have duplicate column names."
+                                " Skipping this table"
+                                .format(table_name=table_name))
+
+            if table_name in TABLE_TO_COLUMN_NAMES:
+                raise Exception("Pre-populating database, and found multiple tables with the same name..."
+                                " Skipping this table")
+
+            TABLE_TO_COLUMN_NAMES[table_name]= column_names_unique
+            dataframe.to_sql(table_name,
                              engine, index=False)
         except Exception as exception:
             print(exception)
