@@ -63,18 +63,30 @@ class RAQConverterTestCase(TestCase):
     def test_case_4(self):
         xml = """
             <ra_expression>
-            <relation>A</relation>
-            <binary_operator>
-                <operator>∪</operator>
-            </binary_operator>
-            <relation>B</relation>
-            <binary_operator>
-                <operator>∪</operator>
-            </binary_operator>
-            <relation>C</relation>
+              <parenthesis>
+                <relation>
+                    A
+                </relation>
+                <binary_operator>
+                    <operator>
+                        ∪
+                    </operator>
+                </binary_operator>
+                <relation>
+                    B
+                </relation>
+              </parenthesis>
+                <binary_operator>
+                    <operator>
+                        ∪
+                    </operator>
+                </binary_operator>
+                <relation>
+                    C
+                </relation>
             </ra_expression>
             """
-        expected = "A ∪ B ∪ C"
+        expected = "(A ∪ B) ∪ C"
         self.assertEqual(raq_converter(xml), expected)
 
     def test_case_5(self):

@@ -49,14 +49,15 @@ class XmlNode:
 def convert_tokenized_ra_to_xml(tokens: List[Token], tag_name="ra_expression"):
     cur_node = XmlNode(tag_name)
     if len(tokens) == 1:
-        return XmlNode(TAG_NAME_MAPPER[tokens[0].type], tokens[0].value)
+        end_node = XmlNode(TAG_NAME_MAPPER[tokens[0].type], tokens[0].value)
+        cur_node.add_child(end_node)
+        return cur_node
     i = 0
     while i < len(tokens):
         if tokens[i].type == TokenType.OPEN_PARENTHESIS:
             end_parenthesis = find_matching_parenthesis(tokens, i)
-            child_node = XmlNode("parenthesis")
-            child_node.add_child(convert_tokenized_ra_to_xml(
-                tokens[i+1:end_parenthesis], "query"))
+            child_node = convert_tokenized_ra_to_xml(
+                tokens[i+1:end_parenthesis], "parenthesis")
             cur_node.add_child(child_node)
             i = end_parenthesis + 1
         elif tokens[i].type == TokenType.IDENT:
