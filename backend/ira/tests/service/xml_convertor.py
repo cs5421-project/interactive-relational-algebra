@@ -109,12 +109,13 @@ class XmlConverterTestCase(TestCase):
         self.assertTrue(self.compare_xmls(tree, expected))
 
     def test_unions_to_xml(self):
-        input = "A ∪ B ∪ C"
+        input = "(A ∪ B) ∪ C"
         tokens = self.lexer.tokenize(input)
         xml = convert_tokenized_ra_to_xml(tokens)
         tree = xml.get_tree()
         expected = """\
             <ra_expression>
+              <parenthesis>
                 <relation>
                     A
                 </relation>
@@ -126,6 +127,7 @@ class XmlConverterTestCase(TestCase):
                 <relation>
                     B
                 </relation>
+              </parenthesis>
                 <binary_operator>
                     <operator>
                         ∪
