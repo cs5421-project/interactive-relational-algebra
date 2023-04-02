@@ -6,11 +6,3 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 ]
 
-
-def init():
-    create_predefined_databases()
-
-
-def create_predefined_databases():
-    # TODO
-    pass

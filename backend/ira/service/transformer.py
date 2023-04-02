@@ -107,15 +107,16 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
                 if current_token.attributes:
                     raise Exception("Logical error; Anti join implementation does not support conditional join")
                 else:
-                    common_column_names = get_common_columns_for_anti_join(parsed_postfix_tokens,
-                                                                           len(parsed_postfix_tokens) - 1, {}, [])
+                    common_column_names, _ = \
+                        get_common_columns_for_anti_join(parsed_postfix_tokens[:index],
+                                                         index - 1, {}, [])
                     if not common_column_names:
                         raise Exception(
                             "Logical error; There are no common columns for the relation/subquery for the anti join "
                             "operator")
-                    anti_join_alias =  ANTI_JOIN_RIGHT_ALIAS.format(index)
+                    anti_join_alias = ANTI_JOIN_RIGHT_ALIAS.format(index)
                     null_conditions = generate_null_condition_for_anti_join(list(common_column_names),
-                                                                           anti_join_alias)
+                                                                            anti_join_alias)
                     current_token.sql_query = QUERY_MAPPER[current_token.type].format(null_conditions=null_conditions,
                                                                                       anti_join_right_alias=anti_join_alias)
                     binary_operator_tracker.append([current_token, NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR])
@@ -186,12 +187,16 @@ def form_query(token) -> bool:
         left_query_value = get_query_with_alias(token.left_child_token.sql_query, token.left_child_token.level,
                                                 token.left_child_token.post_fix_index, token.type,
                                                 token.left_child_token.type)
-    # Ignore for anti join as it comes with its own alias
-    if is_right_child_available and token_type != TokenType.ANTI_JOIN:
-        right_query_value = get_query_with_alias(token.right_child_token.sql_query,
-                                                 token.right_child_token.level,
-                                                 token.right_child_token.post_fix_index, token.type,
-                                                 token.right_child_token.type)
+
+    if is_right_child_available:
+        # Ignore for anti join as it comes with its own alias
+        if token_type == TokenType.ANTI_JOIN:
+            right_query_value = token.right_child_token.sql_query
+        else:
+            right_query_value = get_query_with_alias(token.right_child_token.sql_query,
+                                                     token.right_child_token.level,
+                                                     token.right_child_token.post_fix_index, token.type,
+                                                     token.right_child_token.type)
 
     if is_unary_operator(token_type):
         if is_right_child_available:
@@ -200,9 +205,9 @@ def form_query(token) -> bool:
         else:
             return False
 
-    elif token_type in (*CERTAIN_JOIN_TOKEN_TYPES, TokenType.CARTESIAN, *SET_OPERATOR_TOKENS,TokenType.ANTI_JOIN):
+    elif token_type in (*CERTAIN_JOIN_TOKEN_TYPES, TokenType.CARTESIAN, *SET_OPERATOR_TOKENS, TokenType.ANTI_JOIN):
         if is_left_child_available and is_right_child_available:
-            token.sql_query = token.sql_query.format(left_query_value,right_query_value)
+            token.sql_query = token.sql_query.format(left_query_value, right_query_value)
         else:
             return False
 
@@ -244,22 +249,19 @@ def sanitise(attributes: Attributes, token_type: TokenType):
 
 
 def get_common_columns_for_anti_join(parsed_postfix_tokens: List[Token], index, common_columns, binary_operator_stack):
+    """Calculates the common columns between the operands of anti-join"""
     if index < 0:
-        raise Exception("Relational query is wrongly formed; Binary operator is missing operands")
+        return set(), 0
     if len(parsed_postfix_tokens) == 2:
         if parsed_postfix_tokens[0].type == TokenType.IDENT and parsed_postfix_tokens[1].type == TokenType.IDENT:
             return TABLE_TO_COLUMN_NAMES[parsed_postfix_tokens[0].value].intersection(
-                TABLE_TO_COLUMN_NAMES[parsed_postfix_tokens[1].value])
-        else:
-            raise Exception("Relational query is wrongly formed; Binary operator is missing operands")
+                TABLE_TO_COLUMN_NAMES[parsed_postfix_tokens[1].value]), index
     current_token = parsed_postfix_tokens[index]
     if current_token.type == TokenType.IDENT:
         if index == 0:
             if len(binary_operator_stack) == 0 or (
                     len(binary_operator_stack) == 1 and binary_operator_stack[-1][-1] == 1):
                 return TABLE_TO_COLUMN_NAMES[current_token.value], index
-            else:
-                raise Exception("Relational query is wrongly formed; Binary operator is missing operands")
         elif binary_operator_stack:
             stored_token, number_of_binary_operators_seen = binary_operator_stack[-1]
             if number_of_binary_operators_seen == 1:
@@ -287,15 +289,15 @@ def get_common_columns_for_anti_join(parsed_postfix_tokens: List[Token], index, 
                 return right_side_operand_columns.union(left_side_operand_common_column), left_side_index
     elif current_token.type in TOKEN_TYPE_TO_BINARY_OPERATOR:
         # Keeping track of token and the number of identifiers  yet to see
-        binary_operator_stack.append((current_token, 2))
+        binary_operator_stack.append((current_token, NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR))
         if index == len(parsed_postfix_tokens) - 1:
             # Starting point of anti-join
             right, last_reached_index = get_common_columns_for_anti_join(parsed_postfix_tokens, index - 1,
                                                                          common_columns,
                                                                          binary_operator_stack)
-            left, _ = get_common_columns_for_anti_join(parsed_postfix_tokens, last_reached_index , common_columns,
+            left, _ = get_common_columns_for_anti_join(parsed_postfix_tokens, last_reached_index - 1, common_columns,
                                                        binary_operator_stack)
-            return left.intersection(right)
+            return left.intersection(right), index
     elif current_token.type == TokenType.PROJECTION:
         return current_token.attributes.get_column_names()
     return get_common_columns_for_anti_join(parsed_postfix_tokens, index - 1, common_columns, binary_operator_stack)
@@ -306,4 +308,4 @@ def generate_null_condition_for_anti_join(common_column_names, alias):
     for index in range(len(common_column_names)):
         and_clause = AND if index + 1 != len(common_column_names) else ""
         result += alias + '."' + common_column_names[index] + '" = null ' + and_clause + " "
-    return result
+    return result.strip()

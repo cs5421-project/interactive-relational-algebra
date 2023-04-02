@@ -7,17 +7,20 @@ from ira.service.transformer import transform
 
 
 class TransformerTestCase(SimpleTestCase):
-    SALES_IDENTITY_TOKEN = Token('sales', TokenType.IDENT, None)
-    PRODUCTS_IDENTITY_TOKEN = Token('products', TokenType.IDENT, None)
-    IRIS_IDENTITY_TOKEN = Token('iris', TokenType.IDENT, None)
 
-    MOCK_UNION_TOKEN = Token('∪', TokenType.UNION, None)
-    MOCK_NATURAL_JOIN_TOKEN = Token('⋈', TokenType.NATURAL_JOIN, None)
-    MOCK_INTERSECTION_TOKEN = Token('∩', TokenType.INTERSECTION, None)
-    MOCK_CARTESIAN_TOKEN = Token('⨯', TokenType.CARTESIAN, None)
-    MOCK_DIFFERENCE_TOKEN = Token('-', TokenType.DIFFERENCE, None)
-    MOCK_PROJECTION_TOKEN = Token('π', TokenType.PROJECTION, None)
-    MOCK_SELECTION_TOKEN = Token('σ', TokenType.SELECT, None)
+    def setUp(self) -> None:
+        self.SALES_IDENTITY_TOKEN = Token('sales', TokenType.IDENT, None)
+        self.PRODUCTS_IDENTITY_TOKEN = Token('products', TokenType.IDENT, None)
+        self.IRIS_IDENTITY_TOKEN = Token('iris', TokenType.IDENT, None)
+
+        self.MOCK_UNION_TOKEN = Token('∪', TokenType.UNION, None)
+        self.MOCK_NATURAL_JOIN_TOKEN = Token('⋈', TokenType.NATURAL_JOIN, None)
+        self.MOCK_INTERSECTION_TOKEN = Token('∩', TokenType.INTERSECTION, None)
+        self.MOCK_CARTESIAN_TOKEN = Token('⨯', TokenType.CARTESIAN, None)
+        self.MOCK_DIFFERENCE_TOKEN = Token('-', TokenType.DIFFERENCE, None)
+        self.MOCK_PROJECTION_TOKEN = Token('π', TokenType.PROJECTION, None)
+        self.MOCK_SELECTION_TOKEN = Token('σ', TokenType.SELECT, None)
+        self.MOCK_ANTI_JOIN_TOKEN = Token('▷', TokenType.ANTI_JOIN, None)
 
     def test_singular_table(self):
         # RA query: (sales)
@@ -31,7 +34,8 @@ class TransformerTestCase(SimpleTestCase):
         inner_selection_join_attributes = [Token("ProductID", TokenType.IDENT), Token(
             ">", TokenType.GREATER_THAN), Token("2", TokenType.DIGIT)]
         inner_selection_join_token = Token('σ', TokenType.SELECT, inner_selection_join_attributes)
-        actual_input = [copy.deepcopy(self.SALES_IDENTITY_TOKEN), inner_selection_join_token, copy.deepcopy(self.SALES_IDENTITY_TOKEN),
+        actual_input = [copy.deepcopy(self.SALES_IDENTITY_TOKEN), inner_selection_join_token,
+                        copy.deepcopy(self.SALES_IDENTITY_TOKEN),
                         self.MOCK_INTERSECTION_TOKEN]
         expected_output = '(select * from sales where "ProductID">2) intersect select * from sales;'
         actual_output = transform(actual_input)
@@ -87,5 +91,16 @@ class TransformerTestCase(SimpleTestCase):
         full_join_token = Token('⧓', TokenType.FULL_JOIN, inner_full_join_attributes)
         actual_input = [self.SALES_IDENTITY_TOKEN, self.PRODUCTS_IDENTITY_TOKEN, full_join_token]
         expected_output = 'select * from sales full join products on sales."ProductID"=products."ProductID";'
+        actual_output = transform(actual_input)
+        self.assertEqual(actual_output.value, expected_output)
+
+    def test_simple_anti_join(self):
+        # RA query (sales) ▷ (products)  ▷ sales
+        actual_input = [self.SALES_IDENTITY_TOKEN, self.PRODUCTS_IDENTITY_TOKEN,
+                        copy.deepcopy(self.MOCK_ANTI_JOIN_TOKEN),
+                        self.SALES_IDENTITY_TOKEN, self.MOCK_ANTI_JOIN_TOKEN]
+        expected_output = 'select * from (select * from sales  natural left join products as cq2 where ' \
+                          'cq2."ProductID" = null) as q2  natural left join sales as cq4 where cq4."ProductID" = ' \
+                          'null;'
         actual_output = transform(actual_input)
         self.assertEqual(actual_output.value, expected_output)

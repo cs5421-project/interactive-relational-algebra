@@ -28,7 +28,6 @@ class Token:
         self.level = self.get_level_based_on_parent_token()
 
     def get_level_based_on_parent_token(self):
-        # TODO: look into deciphering level based on children's level
         if self.parent_token is None:
             return 0
         elif self.parent_token.level:
@@ -38,7 +37,7 @@ class Token:
             level = 1
             while token.parent_token:
                 token = token.parent_token
-                level+=1
+                level += 1
             return level
 
     def initialise_for_transformer(self, sql_query, post_fix_index, parent_token):
