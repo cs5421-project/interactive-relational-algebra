@@ -1,8 +1,7 @@
-from functools import lru_cache
 from typing import List
 
-from ira.constants import TOKEN_TYPE_OPERATORS, TOKEN_TYPE_TO_UNARY_OPERATOR, TOKEN_TYPE_TO_BINARY_OPERATOR, AND, \
-    QUERY_BINARY_OPERATORS_TO_TOKEN_TYPE, TOKEN_TYPE_TO_QUERY_BINARY_OPERATOR
+from ira.constants import TOKEN_TYPE_TO_BINARY_OPERATOR, AND, \
+    TOKEN_TYPE_TO_QUERY_BINARY_OPERATOR
 from ira.enum.token_type import TokenType
 from ira.model.attributes import Attributes
 from ira.model.query import Query
@@ -10,36 +9,240 @@ from ira.model.token import Token
 from ira.service.pre_populator import TABLE_TO_COLUMN_NAMES
 from ira.service.util import is_unary_operator
 
+QUERY_SEMI_COLON = ';'
+
 NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR = 2
 
-N_JOIN_BASE_QUERY = ["select * from {{}} natural {join_type} join {{}};",
-                     "select * from {{}} {join_type} join {{}} on {{conditions}};"]
+N_JOIN_BASE_QUERY = ("select * from {{}} natural {join_type} join {{}}",
+                     "select * from {{}} {join_type} join {{}} on {{conditions}}")
 
 
-def get_n_join_queries(join_type):
+def get_join_queries(join_type):
     return tuple(query.format(join_type=join_type) for query in N_JOIN_BASE_QUERY)
 
 
-ANTI_JOIN_RIGHT_ALIAS = "cq1"
+ANTI_JOIN_RIGHT_ALIAS = "cq{}"
 
-QUERY_MAPPER = {TokenType.SELECT: "select * from {{}} where {conditions};",
-                TokenType.PROJECTION: "select distinct {column_names} from {{}};",
-                TokenType.NATURAL_JOIN: "select * from {} natural join {};",
-                TokenType.IDENT: "select * from {table_name};",
-                TokenType.CARTESIAN: "select * from {} cross join {};",
+CERTAIN_JOIN_TOKEN_TYPES = (TokenType.LEFT_JOIN, TokenType.RIGHT_JOIN, TokenType.FULL_JOIN, TokenType.NATURAL_JOIN)
+
+SQL_JOIN_TOKEN_TYPE = (*CERTAIN_JOIN_TOKEN_TYPES, TokenType.ANTI_JOIN, TokenType.CARTESIAN)
+
+QUERY_MAPPER = {TokenType.SELECT: "select * from {{}} where {conditions}",
+                TokenType.PROJECTION: "select distinct {column_names} from {{}}",
+                TokenType.NATURAL_JOIN: ("select * from {} natural join {}",
+                                         "select * from {} natural join {} where {conditions}"),
+                TokenType.IDENT: "select * from {table_name}",
+                TokenType.CARTESIAN: "select * from {} cross join {}",
                 TokenType.UNION: "{} union {}",
                 TokenType.INTERSECTION: "{} intersect {}",
                 TokenType.DIFFERENCE: "{} except {}",
-                TokenType.LEFT_JOIN: get_n_join_queries("left"),
-                TokenType.RIGHT_JOIN: get_n_join_queries("right"),
-                TokenType.FULL_JOIN: get_n_join_queries("full"),
+                TokenType.LEFT_JOIN: get_join_queries("left"),
+                TokenType.RIGHT_JOIN: get_join_queries("right"),
+                TokenType.FULL_JOIN: get_join_queries("full"),
                 TokenType.ANTI_JOIN: "select * from {{}}  natural left join {{}} as {anti_join_right_alias}"
-                                     " where {null_conditions};"}
+                                     " where {null_conditions}"}
 
-BINARY_OPERATORS_NEEDING_IDENT_EXPANSION = (TokenType.DIFFERENCE, TokenType.UNION, TokenType.INTERSECTION)
+# Needs some special type of processing
+SET_OPERATOR_TOKENS = (TokenType.DIFFERENCE, TokenType.UNION, TokenType.INTERSECTION)
 
 
-# TODO: Iterative version
+def transform(parsed_postfix_tokens: List[Token]) -> Query:
+    binary_operator_tracker = []
+    index = len(parsed_postfix_tokens) - 1
+    previous_token = None
+
+    while index >= 0:
+        current_token = parsed_postfix_tokens[index]
+        current_token_type = current_token.type
+        current_token.post_fix_index = index
+        is_previous_token_unary = (previous_token is not None) and is_unary_operator(previous_token.type)
+
+        if current_token_type == TokenType.IDENT:
+            popped_binary_operator_tracker = None
+            if not is_previous_token_unary and binary_operator_tracker:
+                parent_token, popped_binary_operator_tracker = \
+                    process_for_parent_binary_operator(binary_operator_tracker,
+                                                       current_token)
+
+            elif is_previous_token_unary:
+                parent_token = previous_token
+                # Right side is the default
+                parent_token.right_child_token = current_token
+
+            elif len(parsed_postfix_tokens) == 1:
+                return Query(QUERY_MAPPER[current_token_type].format(table_name=current_token.value) + QUERY_SEMI_COLON)
+            else:
+                raise Exception("Logical error; Relational algebra query is not well formed.")
+
+            query = get_query_for_identifier_token(current_token, parent_token)
+            current_token.initialise_for_transformer(query, index, parent_token)
+
+            is_ready_to_process_queries = (popped_binary_operator_tracker is not None) or is_previous_token_unary
+            if is_ready_to_process_queries:
+                process_queries(current_token)
+
+        else:
+            # Non identifier scenario
+
+            # Assigning parent token to the current token and children tokens to the previous token
+            if is_previous_token_unary:
+                current_token.set_parent_token(previous_token)
+                # Right is default for unary token
+                previous_token.right_child_token = current_token
+            elif previous_token and binary_operator_tracker:
+                parent_token, popped_binary_operator_tracker = \
+                    process_for_parent_binary_operator(binary_operator_tracker,
+                                                       current_token)
+                current_token.set_parent_token(parent_token)
+
+            if current_token_type == TokenType.SELECT:
+                conditions = sanitise(current_token.attributes, current_token.type)
+                current_token.sql_query = QUERY_MAPPER[current_token.type].format(conditions=conditions)
+
+            elif current_token_type == TokenType.PROJECTION:
+                column_names = sanitise(current_token.attributes, current_token.type)
+                current_token.sql_query = QUERY_MAPPER[current_token.type].format(column_names=column_names)
+
+            elif current_token_type == TokenType.ANTI_JOIN:
+                if current_token.attributes:
+                    raise Exception("Logical error; Anti join implementation does not support conditional join")
+                else:
+                    common_column_names = get_common_columns_for_anti_join(parsed_postfix_tokens,
+                                                                           len(parsed_postfix_tokens) - 1, {}, [])
+                    if not common_column_names:
+                        raise Exception(
+                            "Logical error; There are no common columns for the relation/subquery for the anti join "
+                            "operator")
+                    anti_join_alias =  ANTI_JOIN_RIGHT_ALIAS.format(index)
+                    null_conditions = generate_null_condition_for_anti_join(list(common_column_names),
+                                                                           anti_join_alias)
+                    current_token.sql_query = QUERY_MAPPER[current_token.type].format(null_conditions=null_conditions,
+                                                                                      anti_join_right_alias=anti_join_alias)
+                    binary_operator_tracker.append([current_token, NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR])
+
+            elif current_token_type in TOKEN_TYPE_TO_QUERY_BINARY_OPERATOR:
+                query = QUERY_MAPPER[current_token.type]
+
+                is_token_join = current_token.type in CERTAIN_JOIN_TOKEN_TYPES
+                if current_token.attributes and is_token_join:
+                    # If join operator has attributes, it implies that it is a type of conditional/equi join
+                    conditions = sanitise(current_token.attributes, current_token.type)
+                    query = query[-1].format("{}", "{}", conditions=conditions)
+                elif is_token_join:
+                    query = query[0]
+
+                current_token.sql_query = query
+                if binary_operator_tracker:
+                    binary_operator_tracker[-1][-1] = 1
+                binary_operator_tracker.append([current_token, NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR])
+
+        previous_token = current_token
+        index -= 1
+
+    root_token = parsed_postfix_tokens[-1]
+    return Query(root_token.sql_query + QUERY_SEMI_COLON)
+
+
+def process_for_parent_binary_operator(binary_operator_tracker, current_token):
+    popped_binary_operator_tracker = None
+    parent_binary_token, number_of_binary_operators_seen_since_then = binary_operator_tracker[-1]
+    parent_token = parent_binary_token
+    if number_of_binary_operators_seen_since_then == NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR:
+        parent_binary_token.right_child_token = current_token
+        binary_operator_tracker[-1][-1] = 1
+    elif number_of_binary_operators_seen_since_then == 1:
+        parent_binary_token.left_child_token = current_token
+        popped_binary_operator_tracker = binary_operator_tracker.pop()
+    return parent_token, popped_binary_operator_tracker
+
+
+def get_query_for_identifier_token(current_token, parent_token):
+    if parent_token.type in SET_OPERATOR_TOKENS:
+        query = QUERY_MAPPER[current_token.type].format(table_name=current_token.value)
+    else:
+        query = current_token.value
+    return query
+
+
+def process_queries(token):
+    """ Forms and stores queries starting from a leaf token all the till the processed binary token"""
+    current_token = token
+    while current_token.parent_token:
+        parent_token = current_token.parent_token
+        is_query_formation_successful = form_query(parent_token)
+        if not is_query_formation_successful:
+            break
+        current_token = parent_token
+
+
+def form_query(token) -> bool:
+    """ Takes in a parent token and form a query at that token level"""
+    token_type = token.type
+    is_right_child_available = token.right_child_token is not None
+    is_left_child_available = token.left_child_token is not None
+    left_query_value = None
+    right_query_value = None
+    if is_left_child_available:
+        left_query_value = get_query_with_alias(token.left_child_token.sql_query, token.left_child_token.level,
+                                                token.left_child_token.post_fix_index, token.type,
+                                                token.left_child_token.type)
+    # Ignore for anti join as it comes with its own alias
+    if is_right_child_available and token_type != TokenType.ANTI_JOIN:
+        right_query_value = get_query_with_alias(token.right_child_token.sql_query,
+                                                 token.right_child_token.level,
+                                                 token.right_child_token.post_fix_index, token.type,
+                                                 token.right_child_token.type)
+
+    if is_unary_operator(token_type):
+        if is_right_child_available:
+            query_value = right_query_value
+            token.sql_query = token.sql_query.format(query_value)
+        else:
+            return False
+
+    elif token_type in (*CERTAIN_JOIN_TOKEN_TYPES, TokenType.CARTESIAN, *SET_OPERATOR_TOKENS,TokenType.ANTI_JOIN):
+        if is_left_child_available and is_right_child_available:
+            token.sql_query = token.sql_query.format(left_query_value,right_query_value)
+        else:
+            return False
+
+    return True
+
+
+def is_table_name(query):
+    return query in TABLE_TO_COLUMN_NAMES
+
+
+def get_query_with_alias(query, level, unique_identifier, parent_token_type, token_type):
+    """
+    Adding alias as postgres must need alias for sub-queries
+    """
+    if (level is not None or level == 0) and token_type != TokenType.IDENT:
+        if parent_token_type in SQL_JOIN_TOKEN_TYPE or is_unary_operator(parent_token_type):
+            return "({}) as q{}".format(query, unique_identifier)
+        return "({})".format(query)
+    else:
+        return query
+
+
+def sanitise(attributes: Attributes, token_type: TokenType):
+    """
+    Using quoted identifiers to avoid ambiguity.
+    Surrounding column name with " just in case if column name contain characters like "." etc
+    """
+    if token_type == TokenType.PROJECTION:
+        return ",".join('"{column_name}"'.format(column_name=column_name)
+                        for column_name in attributes.get_column_names())
+    elif token_type in (TokenType.SELECT, TokenType.NATURAL_JOIN,
+                        TokenType.FULL_JOIN, TokenType.RIGHT_JOIN,
+                        TokenType.LEFT_JOIN):
+        query_segment = str(attributes)
+        for column_name in attributes.column_names:
+            query_segment = query_segment.replace(column_name, '"{column_name}"'
+                                                  .format(column_name=column_name))
+        return query_segment
+
+
 def get_common_columns_for_anti_join(parsed_postfix_tokens: List[Token], index, common_columns, binary_operator_stack):
     if index < 0:
         raise Exception("Relational query is wrongly formed; Binary operator is missing operands")
@@ -90,7 +293,7 @@ def get_common_columns_for_anti_join(parsed_postfix_tokens: List[Token], index, 
             right, last_reached_index = get_common_columns_for_anti_join(parsed_postfix_tokens, index - 1,
                                                                          common_columns,
                                                                          binary_operator_stack)
-            left, _ = get_common_columns_for_anti_join(parsed_postfix_tokens, last_reached_index - 1, common_columns,
+            left, _ = get_common_columns_for_anti_join(parsed_postfix_tokens, last_reached_index , common_columns,
                                                        binary_operator_stack)
             return left.intersection(right)
     elif current_token.type == TokenType.PROJECTION:
@@ -104,152 +307,3 @@ def generate_null_condition_for_anti_join(common_column_names, alias):
         and_clause = AND if index + 1 != len(common_column_names) else ""
         result += alias + '."' + common_column_names[index] + '" = null ' + and_clause + " "
     return result
-
-
-def transform(parsed_postfix_tokens: List[Token]) -> Query:
-    # TODO: need to identify when to expand on an identifier
-    #       ans: when it is the direct children of certain operators
-    #            certain operators: union, intersection and difference
-    #            -
-    # Output: List of queries + tokens
-
-    binary_operator_tracker = []
-    index = len(parsed_postfix_tokens) - 1
-    previous_token = None
-
-    while index >= 0:
-        current_token = parsed_postfix_tokens[index]
-        current_token_type = current_token.type
-
-        is_previous_token_unary = (previous_token is not None) and is_unary_operator(previous_token.type)
-
-        if current_token_type == TokenType.IDENT:
-
-            # Expanding IDENT to a query if needed
-            if not is_previous_token_unary and binary_operator_tracker:
-                parent_binary_token, number_of_binary_operators_seen_since_then = binary_operator_tracker[-1]
-                parent_token = parent_binary_token
-                if number_of_binary_operators_seen_since_then == NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR:
-                    parent_binary_token.right_child_token = current_token
-                    binary_operator_tracker[-1][-1] = 1
-                elif number_of_binary_operators_seen_since_then == 1:
-                    parent_binary_token.left_child_token = current_token
-                    binary_operator_tracker.pop()
-
-            elif is_previous_token_unary :
-                parent_token = previous_token
-
-            elif len(parsed_postfix_tokens) == 1:
-                return Query(QUERY_MAPPER[current_token_type].format(table_name=current_token.value))
-            else:
-                raise Exception("Logical error; Relational algebra query is not well formed.")
-
-            current_token.initialise_for_transformer(QUERY_MAPPER[current_token_type]
-                                                     .format(table_name=current_token.value),
-                                                     index,
-                                                     parent_token)
-        else:
-            current_token.post_fix_index = index
-            
-            if is_previous_token_unary:
-                current_token.parent_token = previous_token
-            elif previous_token and binary_operator_tracker:
-                current_token.parent_token = binary_operator_tracker[-1][0]
-
-            # Assigning children tokens relevant to the previous token
-            if previous_token:
-                if previous_token.right_child_token and not is_previous_token_unary:
-                    previous_token.left_child_token = current_token
-                else:
-                    previous_token.right_child_token = current_token
-
-            if current_token_type == TokenType.SELECT:
-                conditions = sanitise(current_token.attributes, current_token.type)
-                current_token.sql_query = QUERY_MAPPER[current_token.type].format(conditions=conditions)
-
-            elif current_token == TokenType.PROJECTION:
-                column_names = sanitise(current_token.attributes, current_token.type)
-                current_token.sql_query = QUERY_MAPPER[current_token.type].format(column_names=column_names)
-
-            elif current_token_type == TokenType.ANTI_JOIN:
-                if current_token.attributes:
-                    raise Exception("Logical error; Anti join implementation does not support conditional join")
-                else:
-                    common_column_names = get_common_columns_for_anti_join(parsed_postfix_tokens,
-                                                                           len(parsed_postfix_tokens) - 1, {}, [])
-                    if not common_column_names:
-                        raise Exception(
-                            "Logical error; There are no common columns for the relation/subquery for the anti join "
-                            "operator")
-                    null_conditions = generate_null_condition_for_anti_join(list(common_column_names),
-                                                                            ANTI_JOIN_RIGHT_ALIAS)
-                    current_token.sql_query = QUERY_MAPPER[current_token.type].format(null_conditions=null_conditions,
-                                                                                      anti_join_right_alias=ANTI_JOIN_RIGHT_ALIAS)
-                    binary_operator_tracker.append([current_token, NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR])
-
-            elif current_token_type in TOKEN_TYPE_TO_QUERY_BINARY_OPERATOR:
-                query = QUERY_MAPPER[current_token.type]
-                is_certain_join = current_token.type in (TokenType.LEFT_JOIN,
-                                                         TokenType.RIGHT_JOIN,
-                                                         TokenType.FULL_JOIN)
-                if current_token.attributes and is_certain_join:
-                    # If certain join operator has attributes, it implies that it is a type of conditional/equi join
-                    conditions = sanitise(current_token.attributes, current_token.type)
-                    query = query[-1].format("{}", "{}", conditions=conditions)
-                elif is_certain_join:
-                    query = query[0]
-
-                current_token.sql_query = query
-                if binary_operator_tracker:
-                    binary_operator_tracker[-1][-1] = 1
-                binary_operator_tracker.append([current_token, NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR])
-
-        previous_token = current_token
-        index -= 1
-
-    leaf_token = parsed_postfix_tokens[0]
-    return generate_query(leaf_token)
-
-
-def get_right_child_details(initial_leaf_token):
-    pass
-
-
-def get_left_child_details(root):
-    pass
-
-
-def generate_query(initial_leaf_token) -> Query:
-    root, right_child_query = get_right_child_details(initial_leaf_token)
-    left_child_query = get_left_child_details(root)
-
-    initial_leaf_token.left_child_token
-    pass
-
-
-def get_query_with_alias(query, level):
-    """
-    Adding alias as postgres must need alias for sub-queries
-    """
-    if level is not None:
-        return "({}) as q{}".format(query.rstrip(';'), level)
-    else:
-        return query
-
-
-def sanitise(attributes: Attributes, token_type: TokenType):
-    """
-    Using quoted identifiers to avoid ambiguity.
-    Surrounding column name with " just in case if column name contain characters like "." etc
-    """
-    if token_type == TokenType.PROJECTION:
-        return ",".join('"{column_name}"'.format(column_name=column_name)
-                        for column_name in attributes.get_column_names())
-    elif token_type in (TokenType.SELECT, TokenType.NATURAL_JOIN,
-                        TokenType.FULL_JOIN, TokenType.RIGHT_JOIN,
-                        TokenType.LEFT_JOIN):
-        query_segment = str(attributes)
-        for column_name in attributes.column_names:
-            query_segment = query_segment.replace(column_name, '"{column_name}"'
-                                                  .format(column_name=column_name))
-        return query_segment

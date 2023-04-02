@@ -11,4 +11,4 @@ class Query:
 
     def _is_dql(self):
         upper_case_value = self.value.upper()
-        return upper_case_value.startswith(SELECT) or upper_case_value.startswith(OPEN_PARENTHESIS + SELECT)
+        return upper_case_value.startswith(SELECT) or upper_case_value.lstrip(OPEN_PARENTHESIS).startswith(SELECT)
