@@ -169,9 +169,6 @@ class Lexer:
                 if parenthesis_stack:
                     parenthesis_index, is_logical_comparative_operator_persisted = parenthesis_stack.pop()
                     if not is_logical_comparative_operator_persisted:
-                        if parenthesis_stack:
-                            raise Exception("Syntactical exception; Relation within a nested boolean expression")
-                        else:
                             return attributes[:parenthesis_index]
                 else:
                     raise Exception("Syntactical exception; Found a closed parenthesis before an open parenthesis")

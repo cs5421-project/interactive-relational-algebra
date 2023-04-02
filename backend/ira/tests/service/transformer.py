@@ -1,3 +1,5 @@
+import copy
+
 from django.test import SimpleTestCase
 
 from ira.service.lexer import Token, TokenType
@@ -29,9 +31,9 @@ class TransformerTestCase(SimpleTestCase):
         inner_selection_join_attributes = [Token("ProductID", TokenType.IDENT), Token(
             ">", TokenType.GREATER_THAN), Token("2", TokenType.DIGIT)]
         inner_selection_join_token = Token('σ', TokenType.SELECT, inner_selection_join_attributes)
-        actual_input = [self.SALES_IDENTITY_TOKEN, inner_selection_join_token, self.SALES_IDENTITY_TOKEN,
+        actual_input = [copy.deepcopy(self.SALES_IDENTITY_TOKEN), inner_selection_join_token, copy.deepcopy(self.SALES_IDENTITY_TOKEN),
                         self.MOCK_INTERSECTION_TOKEN]
-        expected_output = "select * from sales where \"ProductID\">2 intersect select * from sales;"
+        expected_output = '(select * from sales where "ProductID">2) intersect select * from sales;'
         actual_output = transform(actual_input)
         self.assertEqual(actual_output.value, expected_output)
 
@@ -61,8 +63,7 @@ class TransformerTestCase(SimpleTestCase):
         projection_token = Token('π', TokenType.PROJECTION, projection_token_attributes)
         actual_input = [self.IRIS_IDENTITY_TOKEN, inner_projection_token, selection_token,
                         projection_token, self.IRIS_IDENTITY_TOKEN, self.MOCK_NATURAL_JOIN_TOKEN]
-        expected_output = 'select * from (select distinct "variety" from (select * from (select distinct "variety",' \
-                          '"petal_width" from iris) as q0 where "petal_width">0.1) as q1) as q2 natural join iris;'
+        expected_output = 'select * from (select distinct "variety" from (select * from (select distinct "variety","petal_width" from iris) as q1 where "petal_width">0.1) as q2) as q3 natural join iris;'
         actual_output = transform(actual_input)
         self.assertEqual(actual_output.value, expected_output)
 
