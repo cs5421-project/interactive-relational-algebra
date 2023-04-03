@@ -2,19 +2,6 @@
     display: none;
 }
 
-#example-table{
-    background-color: antiquewhite;
-}
-
-#example-table table{
-    width: 100%;
-}
-
-#example-table table th{
-    background-color: grey;
-}
-
-
 textarea {
     border: none;
     background-color: transparent;

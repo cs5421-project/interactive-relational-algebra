@@ -25,7 +25,7 @@ function insertSymbol(e) {
 
 function handleSubmit(event) {
    event.preventDefault();
-   var query = textArea.value;
+   var query = textArea.value.trim();
 
    //post
    fetch(submitURL, {
