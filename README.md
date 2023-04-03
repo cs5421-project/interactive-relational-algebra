@@ -42,7 +42,7 @@ Please make sure backend is already running before running the frontend.
  
 ### To add more tables to the database
 
-Simply add a well formed csv file to the folder [`backend/ira/resources/prepopulation`](https://github.com/cs5421-project/interactive-relational-algebra-app/tree/main/backend/ira/resources/prepopulation)
+Simply add a well formed csv file to the folder [`backend/ira/resources/prepopulation`](https://github.com/cs5421-project/interactive-relational-algebra-app/tree/main/backend/ira/resources/prepopulation) and run the backend app for population of the tables.
 
 ## To run [unit tests](https://github.com/cs5421-project/interactive-relational-algebra-app/tree/main/backend/ira/tests/service) for the backend
 
