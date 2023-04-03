@@ -5,6 +5,12 @@
 ## Descripton
 A web app which allows users to input relational algebra query and view equivalent PostgreSQL query and its output.
 
+<img src="resources/app-screenshot.png" alt="app-screenshot" width="700"/>
+
+## Showcase of different relational algebra query executions + basic usage of load/upload xml endpoint
+
+https://user-images.githubusercontent.com/44941115/229572810-7d76e4bd-9235-4d24-950b-dc284081f024.mp4
+
 
 ## Installation
 
@@ -31,7 +37,20 @@ Please make sure backend is already running before running the frontend.
 `python3 manage.py runserver`
 
 ### To run the frontend
- Simply open `index.html`. It is found under the frontend folder. If you are not seeing the query result ensure that the backend server is running. 
+ Simply open `index.html`. It is found under the frontend folder.
+ 
+ 
+### To add more tables to the database
+
+Simply add a well formed csv file to the folder [`backend/ira/resources/prepopulation`](https://github.com/cs5421-project/interactive-relational-algebra-app/tree/main/backend/ira/resources/prepopulation)
+
+## To run [unit tests](https://github.com/cs5421-project/interactive-relational-algebra-app/tree/main/backend/ira/tests/service) for the backend
+
+`cd backend`
+
+`python3 manage.py test`
+
+
 
 ## Grammar
 ```
@@ -47,7 +66,7 @@ BIN_OP = * | - | ∪ | ∩ | ÷ | ⋈ | ⧑ | ⧒ | ⧓
 ```
 
 ## UML and Package diagram
-Look under the resources folder at the root level.
+Look under the [`resources`](https://github.com/cs5421-project/interactive-relational-algebra-app/tree/main/resources) folder at the root level.
 
 ## Note
 To checkout the backend api: 
