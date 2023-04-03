@@ -67,7 +67,8 @@ class TransformerTestCase(SimpleTestCase):
         projection_token = Token('π', TokenType.PROJECTION, projection_token_attributes)
         actual_input = [self.IRIS_IDENTITY_TOKEN, inner_projection_token, selection_token,
                         projection_token, self.IRIS_IDENTITY_TOKEN, self.MOCK_NATURAL_JOIN_TOKEN]
-        expected_output = 'select * from (select distinct "variety" from (select * from (select distinct "variety","petal_width" from iris) as q1 where "petal_width">0.1) as q2) as q3 natural join iris;'
+        expected_output = 'select * from (select distinct "variety" from (select * from (select distinct "variety","petal_width" from iris) ' \
+                          'as q1 where "petal_width">0.1) as q2) as q3 natural join iris;'
         actual_output = transform(actual_input)
         self.assertEqual(actual_output.value, expected_output)
 
@@ -100,7 +101,7 @@ class TransformerTestCase(SimpleTestCase):
                         copy.deepcopy(self.MOCK_ANTI_JOIN_TOKEN),
                         self.SALES_IDENTITY_TOKEN, self.MOCK_ANTI_JOIN_TOKEN]
         expected_output = 'select * from (select * from sales  natural left join products as cq2 where ' \
-                          'cq2."ProductID" = null) as q2  natural left join sales as cq4 where cq4."ProductID" = ' \
-                          'null;'
+                          'cq2."ProductID" is NULL) as q2  natural left join sales as cq4 where cq4."ProductID" is ' \
+                          'NULL;'
         actual_output = transform(actual_input)
         self.assertEqual(actual_output.value, expected_output)

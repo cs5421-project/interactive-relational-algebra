@@ -46,6 +46,8 @@ COLUMNLIST = IDENT | IDENT ',' COLUMNLIST
 BIN_OP = * | - | ∪ | ∩ | ÷ | ⋈ | ⧑ | ⧒ | ⧓
 ```
 
+## UML and Package diagram
+Look under the resources folder at the root level.
 
 ## Note
 To checkout the backend api: 
@@ -65,6 +67,9 @@ Backend:
 Idea to use `pandas` package to use a csv file to populate the Postgres DB is from https://apoor.medium.com/quickly-load-csvs-into-postgresql-using-python-and-pandas-9101c274a92f
 
 
+Got the idea on how to create a dictionary which allows duplicate key from here:
+https://stackoverflow.com/questions/29519858/adding-duplicate-keys-to-json-with-python
+
 Datasets:
 
 iris csv: 
@@ -73,3 +78,4 @@ https://gist.github.com/netj/8836201
 products and sales csv:
 https://www.sqlservercentral.com/articles/join-two-csv-files-with-a-common-column
 Note: Original dataset was delimited by semicolons, and this had been changed to commas.
+

@@ -105,7 +105,7 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
 
             elif current_token_type == TokenType.ANTI_JOIN:
                 if current_token.attributes:
-                    raise Exception("Logical error; Anti join implementation does not support conditional join")
+                    raise Exception("Logical error; Anti join implementation does not support conditional/equi join")
                 else:
                     common_column_names, _ = \
                         get_common_columns_for_anti_join(parsed_postfix_tokens[:index],
@@ -122,7 +122,7 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
                     binary_operator_tracker.append([current_token, NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR])
 
             elif current_token_type in TOKEN_TYPE_TO_QUERY_BINARY_OPERATOR:
-                query = QUERY_MAPPER[current_token.type]
+                query = QUERY_MAPPER[current_token_type]
 
                 is_token_join = current_token.type in CERTAIN_JOIN_TOKEN_TYPES
                 if current_token.attributes and is_token_join:
@@ -146,12 +146,12 @@ def transform(parsed_postfix_tokens: List[Token]) -> Query:
 
 def process_for_parent_binary_operator(binary_operator_tracker, current_token):
     popped_binary_operator_tracker = None
-    parent_binary_token, number_of_binary_operators_seen_since_then = binary_operator_tracker[-1]
+    parent_binary_token, number_of_operators_seen = binary_operator_tracker[-1]
     parent_token = parent_binary_token
-    if number_of_binary_operators_seen_since_then == NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR:
+    if number_of_operators_seen == NUMBER_OF_OPERANDS_UNDER_BINARY_OPERATOR:
         parent_binary_token.right_child_token = current_token
         binary_operator_tracker[-1][-1] = 1
-    elif number_of_binary_operators_seen_since_then == 1:
+    elif number_of_operators_seen == 1:
         parent_binary_token.left_child_token = current_token
         popped_binary_operator_tracker = binary_operator_tracker.pop()
     return parent_token, popped_binary_operator_tracker
@@ -295,7 +295,7 @@ def get_common_columns_for_anti_join(parsed_postfix_tokens: List[Token], index, 
             right, last_reached_index = get_common_columns_for_anti_join(parsed_postfix_tokens, index - 1,
                                                                          common_columns,
                                                                          binary_operator_stack)
-            left, _ = get_common_columns_for_anti_join(parsed_postfix_tokens, last_reached_index - 1, common_columns,
+            left, _ = get_common_columns_for_anti_join(parsed_postfix_tokens, last_reached_index , common_columns,
                                                        binary_operator_stack)
             return left.intersection(right), index
     elif current_token.type == TokenType.PROJECTION:
@@ -307,5 +307,5 @@ def generate_null_condition_for_anti_join(common_column_names, alias):
     result = ""
     for index in range(len(common_column_names)):
         and_clause = AND if index + 1 != len(common_column_names) else ""
-        result += alias + '."' + common_column_names[index] + '" = null ' + and_clause + " "
+        result += alias + '."' + common_column_names[index] + '" is NULL ' + and_clause + " "
     return result.strip()
