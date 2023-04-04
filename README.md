@@ -9,7 +9,11 @@ A web app which allows users to input relational algebra query and view equivale
 
 ## Showcase of different relational algebra query executions + basic usage of load/upload xml endpoint
 
+- Relevant postman collection here: https://elements.getpostman.com/redirect?entityId=17271995-fb1500f7-97c0-4fac-a890-b549a4a924d8&entityType=collection
+- Details provided on the usage of the postman collection below
+
 https://user-images.githubusercontent.com/44941115/229572810-7d76e4bd-9235-4d24-950b-dc284081f024.mp4
+
 
 
 ## Installation
@@ -38,11 +42,20 @@ Please make sure backend is already running before running the frontend.
 
 ### To run the frontend
  Simply open `index.html`. It is found under the frontend folder.
- 
+
+### Default database schema supported
+ | **iris**     | **products** | **sales**     |
+|--------------|--------------|---------------|
+| sepal_length | ProductID    | ProductID     |
+| sepal_width  | ProductName  | InvoiceNumber |
+| petal_length | Price        |               |
+| petal_width  |              |               |
+| variety      |              |               |
+
  
 ### To add more tables to the database
 
-Simply add a well formed csv file to the folder [`backend/ira/resources/prepopulation`](https://github.com/cs5421-project/interactive-relational-algebra-app/tree/main/backend/ira/resources/prepopulation) and run the backend app for population of the tables.
+Simply add a well formed csv file to the folder [`backend/ira/resources/prepopulation`](https://github.com/cs5421-project/interactive-relational-algebra-app/tree/main/backend/ira/resources/prepopulation) and run the backend app for creation and population of the tables.
 
 ## To run [unit tests](https://github.com/cs5421-project/interactive-relational-algebra-app/tree/main/backend/ira/tests/service) for the backend
 
